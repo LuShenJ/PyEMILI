@@ -1,0 +1,8 @@
+.DS_Store
+/pyemili.egg-info
+/pyemili/__pycache__/
+/pyemili/*.out
+/pyemili/*.dat
+/pyemili/Line_dataset/Linedb.npy
+/pyemili/Line_dataset/match_lines.dat
+test/J0608_03may2019MagE.fits
