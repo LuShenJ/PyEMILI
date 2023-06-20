@@ -575,23 +575,23 @@ class Line_list(object):
                 # If the indexes are the same, just multiply the `icf` of that bin
                 if binix == binix_u:
                     
-                    abun[i,j] = fabun[fid == self.elesym[i]]* \
+                    abun[i,j] = fabun.iloc[fid == self.elesym[i]].item()* \
                                 self.icf[binix]
                     
                 # If bin index of next higher ionized ion is larger, calculate the
                 # mean value of icfs of the two bins.
                 elif binix_u > binix:
                     
-                    abun[i,j] = fabun[fid == self.elesym[i]]* \
+                    abun[i,j] = fabun.iloc[fid == self.elesym[i]].item()* \
                                 (0.5*self.icf[binix]+ \
                                 sum(self.icf[binix+1:binix_u])+ \
                                 0.5*self.icf[binix_u])
 
 
         # Specify values for special ions
-        abun[0,1] = self.icf[1]*fabun[fid =='H']
-        abun[1,1] = self.icf[2]*fabun[fid =='He']
-        abun[1,2] = self.icf[3]*fabun[fid =='He']
+        abun[0,1] = self.icf[1]*fabun.iloc[fid =='H'].item()
+        abun[1,1] = self.icf[2]*fabun.iloc[fid =='He'].item()
+        abun[1,2] = self.icf[3]*fabun.iloc[fid =='He'].item()
 
         return abun
 
@@ -1475,12 +1475,12 @@ class Line_list(object):
 
 
 if __name__ == "__main__":
-    # hf22 = np.loadtxt('../test/Hf2-2_linelist.txt',skiprows=1)
-    # hf22_out = Line_list(wavelength=hf22[:,0],wavelength_error=10,flux=hf22[:,1],snr=hf22[:,2],fwhm=hf22[:,3])    
-    # hf22_out.identify('Hf2-2',abun_type='nebula')
+    hf22 = np.loadtxt('../test/Hf2-2_linelist.txt',skiprows=1)
+    hf22_out = Line_list(wavelength=hf22[:,0],wavelength_error=10,flux=hf22[:,1],snr=hf22[:,2],fwhm=hf22[:,3])    
+    hf22_out.identify('Hf2-2',abun_type='nebula')
     # J0608 = pd.read_table('../test/J0608_linelist.txt',delim_whitespace=True)
     # J0608_out = Line_list(wavelength=J0608.wave_cor.values,wavelength_error=30,flux=J0608.F.values,snr=J0608.snr.values,fwhm=J0608.fwhm.values)
     # J0608_out.identify('J0608_2',Te=30000,abun_type='../test/abun_WC.dat')
-    ic418 = np.loadtxt('../test/ic418_linelist.txt',skiprows=1)
-    ic418_out = Line_list(wavelength=ic418[:,0],wavelength_error=10,flux=ic418[:,3],snr=ic418[:,5],fwhm=ic418[:,4])
-    ic418_out.identify('ic418_2',abun_type='nebula')
+    # ic418 = np.loadtxt('../test/ic418_linelist.txt',skiprows=1)
+    # ic418_out = Line_list(wavelength=ic418[:,0],wavelength_error=10,flux=ic418[:,3],snr=ic418[:,5],fwhm=ic418[:,4])
+    # ic418_out.identify('ic418_2',abun_type='nebula')
