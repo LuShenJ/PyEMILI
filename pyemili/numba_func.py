@@ -99,8 +99,8 @@ def mul_check(wav_nota2, linedb, c, I, lineframe, wavdiff, wav_cor, \
             # Match the multiplet lines in appropriate wavelength range and transition types
             multiplet = multiplet[wav_range& \
                                 # ~internel
-                                 (multiplet[:,4]>=lineframe[i,4]-2)& \
-                                 (multiplet[:,5]>=lineframe[i,5]-2)& \
+                                #  (multiplet[:,4]>=lineframe[i,4]-2)& \
+                                #  (multiplet[:,5]>=lineframe[i,5]-2)& \
                                  (multiplet[:,11]<=lineframe[i,11])]
 
             # internel = np.argwhere((lineframe[i,0]>lowerls)&(lineframe[i,0]<upperls)==True)
