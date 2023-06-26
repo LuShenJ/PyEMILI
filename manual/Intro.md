@@ -13,7 +13,7 @@ This code is not meant to model the spectra, but rather to aid in the identifica
 
 | W | Condition                   | F | Condition             | M   | Condition              |
 |---|-----------------------------|---|-----------------------|-----|------------------------|
-| 0 | $\Delta\lambda\leq 1 \sigma$          | 0 | $I\geq 0.1 I_{max}$    | 0  | $P=2,D=2$ or $D?2$     |
+| 0 | $\Delta\lambda\leq 1 \sigma$          | 0 | $I\geq 0.1 I_{max}$    | 0  | $P=2,D=2$ or $D>2$     |
 | 1 | $1\sigma <\Delta\lambda \leq 2\sigma$ | 1 | $I\geq 0.01 I_{max}$   | 1  | $P=1,D=1$ or $P>2,D=2$ |
 | 2 | $2\sigma <\Delta\lambda \leq 3\sigma$ | 2 | $I\geq 0.001 I_{max}$  | 2  | $P=0,D=0$ or $P>1,D=1$ |
 | 3 | $3\sigma <\Delta\lambda \leq 4\sigma$ | 3 | $I\geq 0.0001 I_{max}$ | 3  | $P=1,D=0$ or $P=2,D=0$ |
