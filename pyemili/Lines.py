@@ -936,7 +936,7 @@ class Line_list(object):
 
             # Correction factor for the intercombination lines
             cc[(linesubframe[:,3]==1)&(lowene>3000)] = 3e-4
-            cc[(linesubframe[:,3]==1)&(lowene<=3000)] = 1e-2
+            cc[(linesubframe[:,3]==1)&(lowene<=3000)] = 1
 
 
             # If the ion is neutral de-value the collisional term, as neutral ions have coulomb \
@@ -1132,9 +1132,9 @@ class Line_list(object):
         mulscore[((detect_num==0)&(possi_num==0))| \
                  ((possi_num>1)&(detect_num==1))] = 2
 
-        mulscore[(detect_num==0)&(possi_num<=2)&(possi_num>0)] = 3
+        mulscore[(detect_num==0)&(possi_num<=3)&(possi_num>0)] = 3
 
-        mulscore[(detect_num==0)&(possi_num>2)] = 4
+        mulscore[(detect_num==0)&(possi_num>3)] = 4
 
         # If the flux of observed line is lower than 1e-4 H_beta, do not score the \
         # rest conditions 
@@ -1389,8 +1389,8 @@ class Line_list(object):
         with tqdm(total=len(self.wav)) as pbar:
             pbar.set_description('MainProcessing:')
             for line,lineerr,num,obs_flux in zip(self.wav,self.waverr,range(len(self.wav)),self.obs_flux):
-                # if line == 8696.998:
-                #     breakpoint()
+                if line == 3218.2:
+                    breakpoint()
                 score = self.calcu_tatolscore(line,lineerr,obs_flux,num).astype(int)
                 # self.lineframe[:-1] = self.lineframe[:-1][self.flux[:-1].argsort()[::-1]]
                 # self.flux[:-1] = np.sort(self.flux[:-1])[::-1] 
