@@ -48,11 +48,9 @@ class Line_list(object):
         """
 
         # Convert Input data to ndarray and sort
-        self.wav = np.sort(np.array(wavelength))
+        self.wav = np.array(wavelength)
 
         self.obs_flux = np.array(flux)
-
-        self.obs_flux = self.obs_flux[np.argsort(self.wav)]
 
         # Symbols for elements
         self.elesym = ['H','He','Li','Be','B','C','N','O','F','Ne',\
@@ -1135,6 +1133,10 @@ class Line_list(object):
         mulscore[(detect_num==0)&(possi_num<=3)&(possi_num>0)] = 3
 
         mulscore[(detect_num==0)&(possi_num>3)] = 4
+
+        # If it's 0/0 with the highest predicted flux, increse weight
+        hf00 = (detect_num==0)&(possi_num==0)&(self.flux==max(self.flux))
+        mulscore[hf00] = mulscore[hf00] - 1 
 
         # If the flux of observed line is lower than 1e-4 H_beta, do not score the \
         # rest conditions 
