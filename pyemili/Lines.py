@@ -644,7 +644,8 @@ class Line_list(object):
             if H_beta.flux.item() != 1:
                 print('H beta flux is not normalized. About to normalize the flux.')
                 lines.flux = lines.flux/H_beta.flux.item()
-                self.obs_flux = self.obs_flux/H_beta.flux.item()
+                if H_beta.flux.item() > 0:
+                    self.obs_flux = self.obs_flux/H_beta.flux.item()
         # If do not match H beta successfully, consider the nearest line as H beta
         else:
             H_betaflux = self.obs_flux[np.argmin(abs(self.wav-4861.325))]
@@ -653,7 +654,8 @@ class Line_list(object):
             print(f'Consider H_beta as {H_beta}, observed flux:{H_betaflux}')
             if H_betaflux != 1:
                 lines.flux = lines.flux/H_betaflux
-                self.obs_flux = self.obs_flux/H_betaflux
+                if H_beta.flux.item() > 0:
+                    self.obs_flux = self.obs_flux/H_betaflux
 
 
         tbin = pd.concat([ele,ion,tt],axis=1).apply( \
@@ -662,7 +664,8 @@ class Line_list(object):
 
         
         # Modify the dillution factor of collisional excitation term
-        self.col_cor = self.col_cor/np.median(lines[tt==2].pre_flux/lines[tt==2].flux)
+        if len(lines[tt==2]) >= 5:
+            self.col_cor = self.col_cor/np.median(lines[tt==2].pre_flux/lines[tt==2].flux)
                     
         # If user did not specify the `icf` parameter
         if not self.icfuc:
