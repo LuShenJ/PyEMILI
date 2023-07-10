@@ -159,7 +159,8 @@ def readfile(file, wavelength_unit='angstrom', \
 
         NOTE: Only modify this parameter if you cannot read the spectrum.
     ral_vel : int, float, optional
-        The radial velocity of the spectrum in the unit of km/s. Default is 0.
+        The radial velocity of the spectrum in the unit of km/s. This will shift all wavelength 
+        points using the specified radial velocity. Default is 0.
     
     Returns
     -------
