@@ -14,7 +14,7 @@ import numba as nb
 
 class Line_list(object):
 
-    def __init__(self, wavelength, wavelength_error, flux, snr=None, fwhm=None):
+    def __init__(self, wavelength, wavelength_error, flux, ral_vel=None, snr=None, fwhm=None):
         """
         Create an input line list that needs to be identified.
 
@@ -39,6 +39,9 @@ class Line_list(object):
 
         flux : array_like
             Input array of fluxes corresponds to `wavelength`.
+        ral_vel : int, float, optional
+            The systematic radial velocity (typically calculated using H beta) of the input line list in 
+            the unit of km/s. Default is 0.
         snr : array_like, optional
             Input array of signal-to-noise ratios corresponds to `wavelength`. This parameter
             will only be used to show along with the identification results.
@@ -80,6 +83,13 @@ class Line_list(object):
 
         # Boltzmman constant in the unit of eV/K.
         self.k = 8.617333262e-5
+
+        if ral_vel:
+            if isinstance(ral_vel,(float,int)):
+                self.wav = (self.c-ral_vel)*self.wav/self.c
+            else:
+                print("Invalid type of 'ral_vel', set to 0.")
+
 
         # Initialize the arrays of wavelength uncertainties, snr, and fwhm
         self.waverr = self.__init_para(wavelength_error,'Wavelength_Error')
