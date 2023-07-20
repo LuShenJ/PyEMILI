@@ -62,9 +62,9 @@ def effcoe_cal(flux, eff_ix, ele, ionnum, abun,  effcoes, effcoe_num, \
 
 # The main process foe checking the multiplet lines.
 @nb.njit(parallel=True,cache=True)
-def mul_check(wav_nota2, linedb, c, I, lineframe, wavdiff, wav_cor, \
-    wav, wavl, ele_binindex, v_cor, waverr, obs_flux, \
-    lowerls, upperls, pobs_flux, candidate, \
+def mul_check(wav_nota2, linedb, c, I, k, Te, Ne, lineframe, \
+    wavdiff, wav_cor, wav, wavl, ele_binindex, v_cor, \
+    waverr, obs_flux, lowerls, upperls, pobs_flux, candidate, \
     detect_num, possi_num, extract_done, Aterm, Awave, \
     score_nota, effcoes, effcoe_ix, effcoe_num):
 
@@ -72,7 +72,7 @@ def mul_check(wav_nota2, linedb, c, I, lineframe, wavdiff, wav_cor, \
 
         # Match all multiplet lines from the atomic transition database
         multiplet = linedb[linedb[:,12]==lineframe[i,12]]
-        # if lineframe[i,0] == 4335.3592:
+        # if lineframe[i,0] == 5346.02:
         #     breakpoint()
 
         # If just only one multiplet line exist
@@ -185,7 +185,14 @@ def mul_check(wav_nota2, linedb, c, I, lineframe, wavdiff, wav_cor, \
                                     and lineframe[i,11] == multi[11]:
 
                                 # Calculate a theoretical ratio
-                                ajkrat = lineframe[i,10]*lineframe[i,5]/(multi[10]*multi[5])
+                                if lineframe[i,3] == 2:
+                                    q12_l = 8.63e-6*np.exp(-lineframe[i,9]*1240/(k*Te*1e7))/(((Te)**0.5)*lineframe[i,4])
+                                    q12_m = 8.63e-6*np.exp(-multi[9]*1240/(k*Te*1e7))/(((Te)**0.5)*multi[4])
+                                    q21_l = 8.63e-6/((Te**0.5)*lineframe[i,5])
+                                    q21_m = 8.63e-6/((Te**0.5)*multi[5])
+                                    ajkrat = q12_l/(1+Ne*q21_l/lineframe[i,10])/(q12_m/(1+Ne*q21_m/multi[10]))
+                                else:
+                                    ajkrat = lineframe[i,10]*lineframe[i,5]/(multi[10]*multi[5])
 
                                 # Check the real flux ratio and the theoretical ratio
                                 if fluxratio > 10*ajkrat or fluxratio < (0.1)*ajkrat:

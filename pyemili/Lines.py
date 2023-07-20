@@ -1124,8 +1124,8 @@ class Line_list(object):
             Awave = np.zeros(1)
         # The main function used to search for possible detected multiplet lines from \
         # the input line list
-        mul_check(self.wav_nota2,self.linedb,self.c,self.I,self.lineframe,\
-            self.wavdiff,self.wav_cor,self.wav,wavl,self.ele_binindex,\
+        mul_check(self.wav_nota2,self.linedb,self.c,self.I,self.k,self.Te,self.Ne,\
+            self.lineframe,self.wavdiff,self.wav_cor,self.wav,wavl,self.ele_binindex,\
             self.v_cor,self.waverr,self.obs_flux,lowerls,upperls,pobs_flux,\
             self.candidate,detect_num,possi_num,self.extract_done,Aterm,\
             Awave,self.score_nota,self.effcoes,self.effcoe_ix,self.effcoe_num)
