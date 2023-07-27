@@ -358,7 +358,8 @@ class Line_list(object):
                             f'Short Results List: {self.name}.dat\n'+\
                             f'Electron Temp.: {self.Te}\n'+\
                             f'Electron Density: {self.Ne}\n'+\
-                            f'Inst. Resolution: {self.I}\n'
+                            f'Inst. Resolution: {self.I}\n'+\
+                            f'Input Abundance Table: {abun_type}\n'
                     if self.waverr_type != 2:
                         out_sum += f'Input Wavelength uncertainty (1 sigma): {self.waverr_init} km/s\n'
                     
@@ -669,7 +670,7 @@ class Line_list(object):
 
 
         tbin = pd.concat([ele,ion,tt],axis=1).apply( \
-            lambda x: self.ele_binindex[x.ele,x.ion+1] if x.tt==0 \
+            lambda x: self.ele_binindex[x.ele,x.ion+1] if x.tt!=2 \
                  else self.ele_binindex[x.ele,x.ion],axis=1)
 
         
@@ -681,15 +682,16 @@ class Line_list(object):
         if not self.icfuc:
 
             # Set the minimum and maximum values of each bin
-            min_val = [1.0E-3]*4 +[1.0E-4]
+            min_val = [1.0E-2]+ [1.0E-3]*3 +[1.0E-4]
             max_val = [0.5]*4 + [0.3]
 
             # Check if there is any line in bin 1 and set icf
-            if sum(tbin==0) != 0:
-                flx1 = lines.flux[tbin==0].max()
-                ix1 = 1.0E-1 if flx1 > 1.0E-2 \
-                 else 1.0E-3 if flx1 < 1.0E-4 \
-                 else 1.0E-2
+            if sum(tbin==0) >= 5:
+                ix1 = 0.01*np.median(lines.flux[tbin==0]/lines.pre_flux[tbin==0])
+                # flx1 = lines.flux[tbin==0].max()
+                # ix1 = 1.0E-1 if flx1 > 1.0E-2 \
+                #  else 1.0E-3 if flx1 < 1.0E-4 \
+                #  else 1.0E-2
 
             else:
                 ix1 = min_val[0]
@@ -1404,8 +1406,8 @@ class Line_list(object):
         with tqdm(total=len(self.wav)) as pbar:
             pbar.set_description('MainProcessing:')
             for line,lineerr,num,obs_flux in zip(self.wav,self.waverr,range(len(self.wav)),self.obs_flux):
-                if line == 3218.2:
-                    breakpoint()
+                # if line == 3218.2:
+                #     breakpoint()
                 score = self.calcu_tatolscore(line,lineerr,obs_flux,num).astype(int)
                 # self.lineframe[:-1] = self.lineframe[:-1][self.flux[:-1].argsort()[::-1]]
                 # self.flux[:-1] = np.sort(self.flux[:-1])[::-1] 
