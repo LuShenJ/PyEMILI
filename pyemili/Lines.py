@@ -106,7 +106,7 @@ class Line_list(object):
 
 
     def identify(self, filename, icf=None, v_cor=None, sigma=5, Ne=10000, Te=10000, \
-        I=10, deplete=None, abun_type='solar', iteration=True, match_list=None, eff_coe=True):
+        I=10, deplete=None, abun_type='solar', col_cor=0.1, iteration=True, match_list=None):
         """
         The prime function of this class. Identify each line in the input line list. One file with 
         complete candidates of each line and another file with the best candidates of each line will 
@@ -153,9 +153,10 @@ class Line_list(object):
             with comma.
             
             Examples:
-              * `Fe 10 1 3` This input type will reduce the abundances of Fe I, Fe II, and Fe III 
-                by a factor of 10.
-              * `Fe -10 1` This input type will enhance the abundance of Fe I by a factor of 10.
+              * `Fe 10 1 3` This input type will reduce the abundances of neutral Fe, Fe+, and Fe++ 
+                by a factor of 10. NOTE: Reducing the intensity of Fe II recombination lines needs to
+                reduce the abundance of Fe++ (Fe 3), while for [Fe II] forbidden lines are Fe+ (Fe 2).
+              * `Fe -10 1` This input type will enhance the abundance of neutral Fe by a factor of 10.
               * `Fe 20, Ti 10` This input type will reduce the abundances of all ion of Fe and Ti 
                 by a factor of 20 and 10 respectively.
 
@@ -163,6 +164,9 @@ class Line_list(object):
             The input elemental abundance table. Here are 2 options: 'solar' (M. Asplund et al. 2009),
             'nebula' (Osterbrock & Ferland 2006). Default is 'solar'. Besides, you can use the filename 
             of other abundance file as input.
+        col_cor : float, optional
+            The dilution factor of the collisional excitation intensity. Set to 0 as no collisionally 
+            excited lines. Default is 0.1.
         iteration : bool
             If True, code will extract a sub line list with relatively robust identifications made 
             in the first iteration to calculate the new `icf` and `v_cor` models and re-identify each 
@@ -188,7 +192,12 @@ class Line_list(object):
             self.loop = 1
         
         # The dilution factor for collisional excitation term
-        self.col_cor = 0.1
+        if col_cor != 0.1:
+            self.col_cor = col_cor
+            self.col_cor_m = False
+        else:
+            self.col_cor = col_cor
+            self.col_cor_m = True
 
         self.match_list = match_list
 
@@ -220,8 +229,8 @@ class Line_list(object):
         self.linedb = np.load(os.path.join(self.rootdir,'pyemili','Line_dataset','Linedb.npy'))
 
         # Compress the atomic transition database
-        uplmt = self.wav[-1]+self.waverr[-1,1]*self.wav[-1]*3*sigma/self.c
-        lowlmt = self.wav[0]+self.waverr[0,0]*self.wav[0]*3*sigma/self.c      
+        uplmt = self.wav.max()+self.waverr[self.wav.argmax(),1]*self.wav.max()*3*sigma/self.c
+        lowlmt = self.wav.min()+self.waverr[self.wav.argmin(),0]*self.wav.min()*3*sigma/self.c      
         self.linedb = self.linedb[(self.linedb[:,0]>=lowlmt)&(self.linedb[:,0]<=uplmt)]
         self.linedb = np.asfortranarray(self.linedb)
         # The radiative recombination coefficients table
@@ -252,6 +261,7 @@ class Line_list(object):
 
         self.Te = Te
 
+        eff_coe=True
         self.eff_coe = eff_coe
 
         if self.eff_coe:
@@ -675,8 +685,10 @@ class Line_list(object):
 
         
         # Modify the dillution factor of collisional excitation term
-        if len(lines[tt==2]) >= 5:
+        if len(lines[tt==2]) >= 5 and self.col_cor_m:
             self.col_cor = self.col_cor/np.median(lines[tt==2].pre_flux/lines[tt==2].flux)
+            if self.col_cor > 1:
+                self.col_cor = 1
                     
         # If user did not specify the `icf` parameter
         if not self.icfuc:
@@ -692,6 +704,8 @@ class Line_list(object):
                 # ix1 = 1.0E-1 if flx1 > 1.0E-2 \
                 #  else 1.0E-3 if flx1 < 1.0E-4 \
                 #  else 1.0E-2
+                if ix1 > max_val[0]:
+                    ix1 = max_val[0]
 
             else:
                 ix1 = min_val[0]
