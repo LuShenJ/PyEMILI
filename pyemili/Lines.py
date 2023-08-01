@@ -374,7 +374,7 @@ class Line_list(object):
                         out_sum += f'Input Wavelength uncertainty (1 sigma): {self.waverr_init} km/s\n'
                     
                     if self.waverr_pro != 0:
-                        out_sum += f'Proper Wavelength uncertainty (1 sigma): {self.waverr_pro:.3f} km/s\n'
+                        out_sum += f'Proper Wavelength uncertainty (1 sigma): {self.waverr_pro*2:.3f} km/s\n'
 
                     f1.write(out_sum)
                     f1.write('\n')
