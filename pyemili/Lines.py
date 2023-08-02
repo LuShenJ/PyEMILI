@@ -364,7 +364,7 @@ class Line_list(object):
                     out_sum = 'PyEMILI Output File\n'+\
                             '------------------------------------\n'+\
                             f'Input Matched List: {self.match_list}\n'+\
-                            f'Results List: {self.name}\n'+\
+                            f'Results List: {self.name}.out\n'+\
                             f'Short Results List: {self.name}.dat\n'+\
                             f'Electron Temp.: {self.Te}\n'+\
                             f'Electron Density: {self.Ne}\n'+\
@@ -694,8 +694,8 @@ class Line_list(object):
         if not self.icfuc:
 
             # Set the minimum and maximum values of each bin
-            min_val = [1.0E-2]+ [1.0E-3]*3 +[1.0E-4]
-            max_val = [0.5]*4 + [0.3]
+            min_val = [1.0E-2] + [1.0E-3]*3 + [1.0E-4]
+            max_val = [0.1] +[0.5]*3 + [0.3]
 
             # Check if there is any line in bin 1 and set icf
             if sum(tbin==0) >= 5:
