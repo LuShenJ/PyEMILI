@@ -3,6 +3,6 @@ numpy
 scipy
 matplotlib
 numba>=0.56.1
-pandas
+pandas>=2.0.3
 astropy
 tqdm
