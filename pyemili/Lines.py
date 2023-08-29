@@ -667,12 +667,16 @@ class Line_list(object):
                 lines.flux = lines.flux/H_beta.flux.item()
                 if H_beta.flux.item() > 0:
                     self.obs_flux = self.obs_flux/H_beta.flux.item()
+        
+        elif min(self.wav) > 4861.325 or max(self.wav) < 4861.325:
+            print('WARNING: H beta is not in the wavelength range of input line list.')
+            print('WARNING: Consider input fluxes are already normalized to I(H_beta)=1.')
         # If do not match H beta successfully, consider the nearest line as H beta
         else:
             H_betaflux = self.obs_flux[np.argmin(abs(self.wav-4861.325))]
             H_beta = self.wav[np.argmin(abs(self.wav-4861.325))]
             print('H beta is not included in matched list.')
-            print(f'Consider H_beta as {H_beta}, observed flux:{H_betaflux}')
+            print(f'Consider H beta as {H_beta}, observed flux:{H_betaflux}')
             if H_betaflux != 1:
                 lines.flux = lines.flux/H_betaflux
                 if H_beta.flux.item() > 0:
@@ -1506,12 +1510,12 @@ class Line_list(object):
 
 
 if __name__ == "__main__":
-    hf22 = np.loadtxt('../test/Hf2-2_linelist.txt',skiprows=1)
-    hf22_out = Line_list(wavelength=hf22[:,0],wavelength_error=10,flux=hf22[:,1],snr=hf22[:,2],fwhm=hf22[:,3])    
-    hf22_out.identify('Hf2-2',abun_type='nebula')
+    # hf22 = np.loadtxt('../test/Hf2-2_linelist.txt',skiprows=1)
+    # hf22_out = Line_list(wavelength=hf22[:,0],wavelength_error=10,flux=hf22[:,1],snr=hf22[:,2],fwhm=hf22[:,3])    
+    # hf22_out.identify('Hf2-2',abun_type='nebula')
     # J0608 = pd.read_table('../test/J0608_linelist.txt',delim_whitespace=True)
     # J0608_out = Line_list(wavelength=J0608.wave_cor.values,wavelength_error=30,flux=J0608.F.values,snr=J0608.snr.values,fwhm=J0608.fwhm.values)
     # J0608_out.identify('J0608_2',Te=30000,abun_type='../test/abun_WC.dat')
-    # ic418 = np.loadtxt('../test/ic418_linelist.txt',skiprows=1)
-    # ic418_out = Line_list(wavelength=ic418[:,0],wavelength_error=10,flux=ic418[:,3],snr=ic418[:,5],fwhm=ic418[:,4])
-    # ic418_out.identify('ic418_2',abun_type='nebula')
+    ic418 = np.loadtxt('../test/ic418_linelist.txt',skiprows=1)
+    ic418_out = Line_list(wavelength=ic418[:,0],wavelength_error=10,flux=ic418[:,3],snr=ic418[:,5],fwhm=ic418[:,4])
+    ic418_out.identify('ic418_2',abun_type='nebula')
