@@ -65,18 +65,46 @@ def effcoe_cal(flux, eff_ix, ele, ionnum, abun,  effcoes, effcoe_num, \
 def mul_check(wav_nota2, linedb, c, I, k, Te, Ne, lineframe, \
     wavdiff, wav_cor, wav, wavl, ele_binindex, v_cor, \
     waverr, obs_flux, lowerls, upperls, pobs_flux, candidate, \
-    detect_num, possi_num, extract_done, Aterm, Awave, \
-    score_nota, effcoes, effcoe_ix, effcoe_num):
+    detect_num, possi_num, extract_done, Aele, Aion, Alowterm, \
+    Aupterm, Awave, Awavdiff, score_nota, effcoes, effcoe_ix, effcoe_num):
 
     for i in nb.prange(len(lineframe)):
 
         # Match all multiplet lines from the atomic transition database
-        multiplet = linedb[linedb[:,12]==lineframe[i,12]]
+        multiplet = linedb[(linedb[:,1]==lineframe[i,1])&(linedb[:,2]==lineframe[i,2])&\
+                           (linedb[:,12]==lineframe[i,12])&(linedb[:,13]==lineframe[i,13])]
+        # multiplet = multiplet[(multiplet[:,12]==lineframe[i,12])&(multiplet[:,13]==lineframe[i,13])]
         # if lineframe[i,0] == 5346.02:
         #     breakpoint()
 
         # If just only one multiplet line exist
         if len(multiplet) == 1:
+            multi = multiplet[0]
+            cond = 0
+            # If it's H I, check if Alist has H I lines from the same lower level but higher upper level
+            if multi[1] == 1 and multi[2] == 1:
+                cond = sum((multi[1]==Aele)&(multi[2]==Aion)&(multi[12]==Alowterm)&(multi[13]<Aupterm)) > 0
+
+            # If it's He II, check if Alist has He II lines from the same lower level but higher upper level
+            if multi[1] == 2 and multi[2] == 2:
+                cond = sum((multi[1]==Aele)&(multi[2]==Aion)&(multi[12]==Alowterm)&(multi[13]<Aupterm)) > 0
+            
+                    
+            if cond:
+                # Average wave_diff of the same ions with the same lower level
+                Adiff = np.mean(Awavdiff[(multi[1]==Aele)&(multi[2]==Aion)&(multi[12]==Alowterm)])
+                #v_cor for recombination line
+                vcor_index = ele_binindex[int(multi[1])-1,int(multi[2])]
+                lamcor = wavl/(1+(v_cor[vcor_index])/c)
+                wvdiv = c*(lamcor-multi[0])/multi[0]
+                if Adiff >= 0:
+                    usevel = waverr[np.argmin(np.abs(wav-multi[0])),0]
+                else:
+                    usevel = waverr[np.argmin(np.abs(wav-multi[0])),1]
+
+                if np.abs(wvdiv-Adiff) <= np.abs(usevel):
+                    score_nota[i] = '^'
+
             continue
 
         # If the wavelengths of all multiplet lines are within the input parameter `I`
@@ -164,15 +192,15 @@ def mul_check(wav_nota2, linedb, c, I, k, Te, Ne, lineframe, \
                             fluxratio = pobs_flux/wobs_flux
                             
                             # Check whether effective recombination coefficient exists
-                            if multi[15] != 0 and lineframe[i,15] != 0:
+                            if multi[14] != 0 and lineframe[i,14] != 0:
                                 cond = (effcoe_num[:,0]==multi[1]-1)&(effcoe_num[:,1]==multi[2]-1)
                                 # match the ion
                                 effix = effcoe_ix[cond][0]
                                 # match the index
                                 ix = np.argwhere(cond)[0][0]
                                 # Calculate the ratio of the effective recombination coefficient
-                                ajkrat = effcoes[ix][int(lineframe[i,15])-1][effix[0]][effix[1]]/ \
-                                         effcoes[ix][int(multi[15])-1][effix[0]][effix[1]]
+                                ajkrat = effcoes[ix][int(lineframe[i,14])-1][effix[0]][effix[1]]/ \
+                                         effcoes[ix][int(multi[14])-1][effix[0]][effix[1]]
 
                                 # Check the real flux ratio and the theoretical ratio
                                 if fluxratio > 10*ajkrat or fluxratio < (0.1)*ajkrat:
@@ -240,9 +268,12 @@ def mul_check(wav_nota2, linedb, c, I, k, Te, Ne, lineframe, \
 
                         # Save the detected multiplet lines
                         if detenum <= 2 and extract_done:
-                            if sum((multi[0]==Awave)&(multi[12]==Aterm)) == 1:
+                            # check for Alist if there is any multiplet of this candidate
+                            if sum((multi[0]==Awave)&(multi[1]==Aele)&(multi[2]==Aion)&\
+                                   (multi[12]==Alowterm)&(multi[13]==Aupterm)) == 1:
                                 ast = '^'
                                 score_nota[i] = '^'
+
                             else:
                                 ast = ''
 
@@ -279,8 +310,8 @@ def term(lineframe,ion_tnum,ion_ele,ion_stat,ion_term,ion_config,\
         ion_config1 = ion_config[cond1]
         ion_tnum1 = ion_tnum[cond1]
 
-        condlowt = lineframe[i,13] == ion_tnum1
-        condupt = lineframe[i,14] == ion_tnum1
+        condlowt = lineframe[i,12] == ion_tnum1
+        condupt = lineframe[i,13] == ion_tnum1
 
         # Transition terms
         termlist[i] = ion_term1[condlowt][0]+'-'+ion_term1[condupt][0]
@@ -312,6 +343,6 @@ def term(lineframe,ion_tnum,ion_ele,ion_stat,ion_term,ion_config,\
         wav_nota1[i] = '+' if wavscore[i] < 1 else ''
 
         # Notations for whether reference of transition probability exists
-        flux_nota[i] = '*' if lineframe[i,10] == 0 else '~' if lineframe[i,15] != 0 and obs_flux> 0 else ''
+        flux_nota[i] = '*' if lineframe[i,10] == 0 else '~' if lineframe[i,14] != 0 and obs_flux> 0 else ''
 
 
