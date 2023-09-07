@@ -210,12 +210,21 @@ class Line_list(object):
         self.vcoruc = False
 
         # Initialize the ranking A candidates list (used in last iteration)
-        self.Aterm = []
+        self.Aele = []
+        self.Aion = []
+        self.Alowterm = []
+        self.Aupterm = []
         self.Awave = []
         self.Anum = []
+        self.Awavdiff = []
         self.extract_done = False
         # Initialize iteration parameter
         self.i = 0
+
+        # Initialize the extra score of H I, He I and He II
+        self.HIexp = 0
+        self.HeIexp = 0
+        self.HeIIexp = 0
 
         print('Initializing database')
 
@@ -677,10 +686,9 @@ class Line_list(object):
             H_beta = self.wav[np.argmin(abs(self.wav-4861.325))]
             print('H beta is not included in matched list.')
             print(f'Consider H beta as {H_beta}, observed flux:{H_betaflux}')
-            if H_betaflux != 1:
+            if H_betaflux != 1 and H_betaflux > 0:
                 lines.flux = lines.flux/H_betaflux
-                if H_beta.flux.item() > 0:
-                    self.obs_flux = self.obs_flux/H_betaflux
+                self.obs_flux = self.obs_flux/H_betaflux
 
 
         tbin = pd.concat([ele,ion,tt],axis=1).apply( \
@@ -728,25 +736,58 @@ class Line_list(object):
             else:
                 ix5 = min_val[4]
 
-            # Match all He I lines with effective recombination coefficients
-            HeI_obsflux = abs(lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].flux)
-            HeI_preflux = lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].pre_flux
-
-            # If no He I lines found, set the ratio as 0
-            if len(HeI_obsflux) != 0:
-                ixr1 = np.median(HeI_obsflux/HeI_preflux)
+            if min(self.wav) < 10828 or max(self.wav) > 3188:
+                # Check if the strong He I lines exist. If not, all He I candidates are not reliable.
+                HeI_3187 = sum(abs(lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].lab_wav-3187) <= 1)
+                HeI_4471 = sum(abs(lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].lab_wav-4471) <= 1)
+                HeI_5876 = sum(abs(lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].lab_wav-5876) <= 1)
+                HeI_10830 = sum(abs(lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].lab_wav-10830) <= 1)
+                if HeI_3187 + HeI_4471 + HeI_5876 + HeI_10830:
+                    # Match all He I lines with effective recombination coefficients
+                    HeI_obsflux = abs(lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].flux)
+                    HeI_preflux = lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].pre_flux
+                    ixr1 = np.median(HeI_obsflux/HeI_preflux)
+                # If no He I lines found, set the ratio as 0
+                else:
+                    ixr1 = 0
+                    self.HeIexp = 4
             else:
-                ixr1 = 0
+                HeI_obsflux = abs(lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].flux)
+                HeI_preflux = lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].pre_flux
 
-            # Match all He II lines with effective recombination coefficients
-            HeII_obsflux = abs(lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].flux)
-            HeII_preflux = lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].pre_flux
+                if len(HeI_obsflux) != 0:
+                    ixr1 = np.median(HeI_obsflux/HeI_preflux)
+                else:
+                    ixr1 = 0
 
-            # If no He I lines found, set the ratio as 0
-            if len(HeII_obsflux) != 0:
-                ixr2 = np.median(HeII_obsflux/HeII_preflux/ixr1)
+            if min(self.wav) < 10121 or max(self.wav) > 1641:
+                # Check if the strong He II lines exist. If not, all He II candidates are not reliable.
+                HeII_1640 = sum(abs(lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].lab_wav-1640) <= 1)
+                HeII_3203 = sum(abs(lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].lab_wav-3203) <= 1)
+                HeII_4686 = sum(abs(lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].lab_wav-4686) <= 1)
+                HeII_6560 = sum(abs(lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].lab_wav-6560) <= 1)
+                HeII_10123 = sum(abs(lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].lab_wav-10123) <= 1)
+
+                if HeII_1640 + HeII_3203 + HeII_4686 + HeII_6560 + HeII_10123:
+                # Match all He II lines with effective recombination coefficients
+                    HeII_obsflux = abs(lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].flux)
+                    HeII_preflux = lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].pre_flux
+                    ixr2 = np.median(HeII_obsflux/HeII_preflux/ixr1)
+
+                # If no He I lines found, set the ratio as 0
+                else:
+                    ixr2 = 0
+                    self.HeIIexp = 4
+            
             else:
-                ixr2 = 0
+                HeII_obsflux = abs(lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].flux)
+                HeII_preflux = lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].pre_flux
+
+                if len(HeII_obsflux) != 0:
+                    ixr2 = np.median(HeII_obsflux/HeII_preflux/ixr1)
+                else:
+                    ixr2 = 0
+
 
 
             remain=1-ix1-ix5
@@ -958,7 +999,7 @@ class Line_list(object):
             ele = linesubframe[:,1].astype(int) - 1
             ionnum = linesubframe[:,2].astype(int) - 1
             br = linesubframe[:,7]
-            eff_ix = linesubframe[:,15].astype(int)
+            eff_ix = linesubframe[:,14].astype(int)
 
             # set the transition probability for those lines without references
             Aki[(linesubframe[:,3]==0)&(linesubframe[:,10]==0)] = 1e4
@@ -979,7 +1020,8 @@ class Line_list(object):
             # For forbidden line, set the recombination term to 0
             rr[(linesubframe[:,3]==2)] = 0
 
-            br[(linesubframe[:,1]==1)] = br[(linesubframe[:,1]==1)]*100
+            # Increase the H branch ration to be well fitted the observed lines
+            br[(linesubframe[:,1]==1)] = br[(linesubframe[:,1]==1)]*200
 
 
             RRs = np.tile([0,0,1,1,0,0],(linesubframe.shape[0],1)).astype(np.float64)
@@ -1134,21 +1176,35 @@ class Line_list(object):
         lowerls = self.wav*(self.c+self.waverr[:,0]*self.sigma)/self.c
         upperls = self.wav*(self.c+self.waverr[:,1]*self.sigma)/self.c
 
+        #Check if it's the last iteration, remove the current tested A candidate
         if self.extract_done:
-            Aterm = np.concatenate(\
-                    (self.Aterm[:sum(self.Anum[:num])],self.Aterm[sum(self.Anum[:num+1]):]))
+            Aele = np.concatenate(\
+                    (self.Aele[:sum(self.Anum[:num])],self.Aele[sum(self.Anum[:num+1]):]))
+            Aion = np.concatenate(\
+                    (self.Aion[:sum(self.Anum[:num])],self.Aion[sum(self.Anum[:num+1]):]))
+            Alowterm = np.concatenate(\
+                    (self.Alowterm[:sum(self.Anum[:num])],self.Alowterm[sum(self.Anum[:num+1]):]))
+            Aupterm = np.concatenate(\
+                    (self.Aupterm[:sum(self.Anum[:num])],self.Aupterm[sum(self.Anum[:num+1]):]))
             Awave = np.concatenate(\
                     (self.Awave[:sum(self.Anum[:num])],self.Awave[sum(self.Anum[:num+1]):]))
+            Awavdiff = np.concatenate(\
+                    (self.Awavdiff[:sum(self.Anum[:num])],self.Awavdiff[sum(self.Anum[:num+1]):]))
         else:
-            Aterm = np.zeros(1)
+            Aele = np.zeros(1)
+            Aion = np.zeros(1)
+            Alowterm = np.zeros(1)
+            Aupterm = np.zeros(1)
             Awave = np.zeros(1)
+            Awavdiff = np.zeros(1)
+
         # The main function used to search for possible detected multiplet lines from \
         # the input line list
         mul_check(self.wav_nota2,self.linedb,self.c,self.I,self.k,self.Te,self.Ne,\
             self.lineframe,self.wavdiff,self.wav_cor,self.wav,wavl,self.ele_binindex,\
             self.v_cor,self.waverr,self.obs_flux,lowerls,upperls,pobs_flux,\
-            self.candidate,detect_num,possi_num,self.extract_done,Aterm,\
-            Awave,self.score_nota,self.effcoes,self.effcoe_ix,self.effcoe_num)
+            self.candidate,detect_num,possi_num,self.extract_done,Aele,Aion,Alowterm,\
+            Aupterm,Awave,Awavdiff,self.score_nota,self.effcoes,self.effcoe_ix,self.effcoe_num)
 
         self.possi_num = possi_num
         self.detect_num = detect_num
@@ -1167,9 +1223,11 @@ class Line_list(object):
 
         mulscore[(detect_num==0)&(possi_num>3)] = 4
 
-        # If it's 0/0 with the highest predicted flux, increse weight
-        hf00 = (detect_num==0)&(possi_num==0)&(self.flux==max(self.flux))
-        mulscore[hf00] = mulscore[hf00] - 1 
+        # If it's 0/0 with the highest predicted flux which is greater than the sub-highest \
+        # by a factor or 10, increse its weight
+        if len(self.flux) >=2 and max(self.flux) >= 10*np.sort(self.flux)[-2]:
+            hf00 = (detect_num==0)&(possi_num==0)&(self.flux==max(self.flux))
+            mulscore[hf00] = mulscore[hf00] - 1 
 
         # If the flux of observed line is lower than 1e-4 H_beta, do not score the \
         # rest conditions 
@@ -1239,9 +1297,11 @@ class Line_list(object):
 
         mulscore = self.calcu_mulscore(wavl,obs_flux,num)
         wavscore = self.calcu_wavlscore(self.lineframe,wavl,wavlerr)
-
+        exscore = np.zeros_like(wavscore)
+        exscore[(self.lineframe[:,1]==2)&(self.lineframe[:,2]==1)] = self.HeIexp
+        exscore[(self.lineframe[:,1]==2)&(self.lineframe[:,2]==2)] = self.HeIIexp
         # Calculate the total score
-        totalscore = mulscore + fluxscore + wavscore
+        totalscore = mulscore + fluxscore + wavscore + exscore
 
         if self.i == self.loop - 1:
             totalscore[-1] = 99
@@ -1249,8 +1309,6 @@ class Line_list(object):
         totalscore[totalscore<0] = 0
 
         return totalscore       
-
-
 
     def _ion_notation(self,ele,ionnum,trans):
         """
@@ -1340,7 +1398,7 @@ class Line_list(object):
                 # If number of candidate lines with minimum score is 1, and \
                 # the second minimum score minus the minimum score is greater than 1
                 if sum(score==mmin) == 1 and submin - mmin >= 2:
-                    output.append([line,minframe[:,0][0],ele,ion,obs_flux,pre_flux[0],minframe[:,15][0]])
+                    output.append([line,minframe[:,0][0],ele,ion,obs_flux,pre_flux[0],minframe[:,14][0]])
 
                 # If number of candidate lines with minimum score is not 1, but \
                 # they are all from the same ion
@@ -1356,7 +1414,7 @@ class Line_list(object):
 
                     lab_wav = sum(minframe[:,5]*minframe[:,0])/sum(minframe[:,5])
                     pre_flux = sum(minframe[:,5]*pre_flux)/sum(minframe[:,5])     
-                    output.append([line,lab_wav,ele,ion,obs_flux,pre_flux,sum(minframe[:,15] != 0)])
+                    output.append([line,lab_wav,ele,ion,obs_flux,pre_flux,sum(minframe[:,14] != 0)])
 
                 
                 # If number of candidate lines with minimum score is not 1, but \
@@ -1402,15 +1460,22 @@ class Line_list(object):
                 minframe = self.lineframe[(score==mmin)]
 
                 # Save the identification code of the multiplet and the number of ranking A candidates
-                self.Aterm.extend(minframe[:,12].tolist())
+                self.Aele.extend(minframe[:,1].tolist())
+                self.Aion.extend(minframe[:,2].tolist())
+                self.Alowterm.extend(minframe[:,12].tolist())
+                self.Aupterm.extend(minframe[:,13].tolist())
                 self.Awave.extend(minframe[:,0].tolist())
+                self.Awavdiff.extend(self.wavdiff[(score==mmin)].tolist())
                 self.Anum.append(len(minframe))
 
                 pbar.update(1)
 
-            
-            self.Aterm = np.array(self.Aterm).reshape(-1)
+            self.Aele = np.array(self.Aele).reshape(-1)
+            self.Aion = np.array(self.Aion).reshape(-1)
+            self.Alowterm = np.array(self.Alowterm).reshape(-1)
+            self.Aupterm = np.array(self.Aupterm).reshape(-1)
             self.Awave = np.array(self.Awave).reshape(-1)
+            self.Awavdiff = np.array(self.Awavdiff).reshape(-1)
             self.Anum = np.array(self.Anum)
   
 
@@ -1432,7 +1497,10 @@ class Line_list(object):
 
                 # Sort each line and give the index values, remove duplicate lines
                 index = np.unique(np.stack((self.lineframe[:-1,0], \
+                                            self.lineframe[:-1,1], \
+                                            self.lineframe[:-1,2], \
                                             self.lineframe[:-1,12], \
+                                            self.lineframe[:-1,13], \
                                                 ),axis=-1),axis=0,return_index=True)[1]
 
                 # Append the index of peripheral line 
@@ -1492,7 +1560,8 @@ class Line_list(object):
                                 self.lineframe[:,4],\
                                 self.lineframe[:,5],\
                                 ),axis=-1)
-
+                
+                # output are sorted by scores
                 out = out[out[:,9].astype(int).argsort()]
                 Aout = out[(out[:,11]=='A')|(out[:,10]=='^')]
                 Astr = ''.join(f'{i[4]}  {i[3]:.9s}, ' for i in Aout)
