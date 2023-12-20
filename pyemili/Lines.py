@@ -14,7 +14,7 @@ import numba as nb
 
 class Line_list(object):
 
-    def __init__(self, wavelength, wavelength_error, flux, ral_vel=None, snr=None, fwhm=None):
+    def __init__(self, wavelength, wavelength_error, flux, ral_vel=None, flux_error=None, snr=None, fwhm=None):
         """
         Create an input line list that needs to be identified.
 
@@ -95,9 +95,11 @@ class Line_list(object):
         self.waverr = self.__init_para(wavelength_error,'Wavelength_Error')
 
         # Parameter for checking the proper wavelength uncertainties
-        self.waverr_pro = 0
+        # self.waverr_pro = 0
 
         self.waverr_init = wavelength_error
+
+        self.obsflux_err = self.__init_para(flux_error,'flux_error')
 
         self.snr = self.__init_para(snr,'snr')
 
@@ -106,7 +108,8 @@ class Line_list(object):
 
 
     def identify(self, filename, icf=None, v_cor=None, sigma=5, Ne=10000, Te=10000, \
-        I=10, deplete=None, abun_type='solar', col_cor=0.1, iteration=True, match_list=None):
+        I=10, deplete=None, abun_type='solar', col_cor=0.1, iteration=True, erc_list = False,\
+        match_list=None):
         """
         The prime function of this class. Identify each line in the input line list. One file with 
         complete candidates of each line and another file with the best candidates of each line will 
@@ -209,6 +212,8 @@ class Line_list(object):
 
         self.vcoruc = False
 
+        self.erc_list = erc_list
+
         # Initialize the ranking A candidates list (used in last iteration)
         self.Aele = []
         self.Aion = []
@@ -281,8 +286,8 @@ class Line_list(object):
             self.HI_Ne = 10**np.linspace(2,14,num=13)
             self.HI_Te = 1e2*np.array([5,10,30,50,75,100,125,150,200,300])
 
-            self.HeI_Ne = 10**np.linspace(1,14,num=14)
-            self.HeI_Te = 1e3*np.arange(5,26)
+            self.HeI_Ne = 10**np.array([2,2.5,3,3.5,4,4.5,5,5.5,6])
+            self.HeI_Te = 10**(np.arange(26,46)*0.1)
 
             self.HeII_Ne = 10**np.linspace(2,14,num=13)
             self.HeII_Te = 1e2*np.array([5,10,30,50,75,100,125,150,200,300,500,1000])
@@ -360,6 +365,8 @@ class Line_list(object):
         open(f'{self.name}.dat','w')
         f1 = open(f'{self.name}.out','a')
         f2 = open(f'{self.name}.dat','a')
+        if self.erc_list:
+            open(f'{self.name}_erc.dat','w')
 
         for self.i in range(self.loop):
 
@@ -382,8 +389,8 @@ class Line_list(object):
                     if self.waverr_type != 2:
                         out_sum += f'Input Wavelength uncertainty (1 sigma): {self.waverr_init} km/s\n'
                     
-                    if self.waverr_pro != 0:
-                        out_sum += f'Proper Wavelength uncertainty (1 sigma): {self.waverr_pro*2:.3f} km/s\n'
+                    # if self.waverr_pro != 0:
+                    #     out_sum += f'Proper Wavelength uncertainty (1 sigma): {self.waverr_pro*2:.3f} km/s\n'
 
                     f1.write(out_sum)
                     f1.write('\n')
@@ -422,7 +429,7 @@ class Line_list(object):
         Initialize `snr`, `fwhm`, and `wavelength_error` parameters.
         """
 
-        if paraname == 'snr' or paraname == 'fwhm':    
+        if paraname == 'snr' or paraname == 'fwhm' or paraname == 'flux_error':    
 
             if isinstance(para,(np.ndarray,list,tuple,pd.Series)):
                 return np.array(para)
@@ -676,6 +683,7 @@ class Line_list(object):
                 lines.flux = lines.flux/H_beta.flux.item()
                 if H_beta.flux.item() > 0:
                     self.obs_flux = self.obs_flux/H_beta.flux.item()
+                    self.obsflux_err = self.obsflux_err/H_beta.flux.item()
         
         elif min(self.wav) > 4861.325 or max(self.wav) < 4861.325:
             print('WARNING: H beta is not in the wavelength range of input line list.')
@@ -746,7 +754,9 @@ class Line_list(object):
                     # Match all He I lines with effective recombination coefficients
                     HeI_obsflux = abs(lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].flux)
                     HeI_preflux = lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].pre_flux
-                    ixr1 = np.median(HeI_obsflux/HeI_preflux)
+                    # ixr1 = np.median(HeI_obsflux/HeI_preflux)
+                    # weighted by predicted fluxes
+                    ixr1 = np.mean(HeI_obsflux/sum(HeI_preflux)*len(HeI_obsflux)*self.icf[2]/self.icf[1])
                 # If no He I lines found, set the ratio as 0
                 else:
                     ixr1 = 0
@@ -756,7 +766,8 @@ class Line_list(object):
                 HeI_preflux = lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].pre_flux
 
                 if len(HeI_obsflux) != 0:
-                    ixr1 = np.median(HeI_obsflux/HeI_preflux)
+                    # ixr1 = np.median(HeI_obsflux/HeI_preflux)
+                    ixr1 = np.mean(HeI_obsflux/sum(HeI_preflux)*len(HeI_obsflux)*self.icf[2]/self.icf[1])
                 else:
                     ixr1 = 0
 
@@ -772,7 +783,9 @@ class Line_list(object):
                 # Match all He II lines with effective recombination coefficients
                     HeII_obsflux = abs(lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].flux)
                     HeII_preflux = lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].pre_flux
-                    ixr2 = np.median(HeII_obsflux/HeII_preflux/ixr1)
+                    # ixr2 = np.median(HeII_obsflux/HeII_preflux/ixr1)
+                    # weighted by predicted fluxes
+                    ixr2 = np.mean(HeII_obsflux/sum(HeII_preflux)*len(HeII_preflux)*self.icf[3]/self.icf[2]/ixr1)
 
                 # If no He I lines found, set the ratio as 0
                 else:
@@ -784,7 +797,7 @@ class Line_list(object):
                 HeII_preflux = lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].pre_flux
 
                 if len(HeII_obsflux) != 0:
-                    ixr2 = np.median(HeII_obsflux/HeII_preflux/ixr1)
+                    ixr2 = np.mean(HeII_obsflux/sum(HeII_preflux)*len(HeII_preflux)*self.icf[3]/self.icf[2]/ixr1)
                 else:
                     ixr2 = 0
 
@@ -854,7 +867,7 @@ class Line_list(object):
         # sigma2 = np.std(rvcor[rvcor<0])
         # # self.waverr = self.__init_para([-sigma2,sigma1],'Wavelength_Error')
         # self.waverr_pro = [-sigma2,sigma1]
-        self.waverr_pro = np.std(rvcor)
+        # self.waverr_pro = np.std(rvcor[abs(rvcor)<=np.std(rvcor)])
 
         # If user did not specify the `v_cor` parameter
         if not self.vcoruc:
@@ -1020,8 +1033,12 @@ class Line_list(object):
             # For forbidden line, set the recombination term to 0
             rr[(linesubframe[:,3]==2)] = 0
 
-            # Increase the H branch ration to be well fitted the observed lines
+            # Increase the H I, He I and He II branch ratios to be well fitted the observed lines
             br[(linesubframe[:,1]==1)] = br[(linesubframe[:,1]==1)]*200
+            br[(linesubframe[:,1]==2)&(linesubframe[:,2]==1)] = \
+                br[(linesubframe[:,1]==2)&(linesubframe[:,2]==1)]/10*3
+            br[(linesubframe[:,1]==2)&(linesubframe[:,2]==2)] = \
+                br[(linesubframe[:,1]==2)&(linesubframe[:,2]==2)]*50
 
 
             RRs = np.tile([0,0,1,1,0,0],(linesubframe.shape[0],1)).astype(np.float64)
@@ -1219,9 +1236,9 @@ class Line_list(object):
         mulscore[((detect_num==0)&(possi_num==0))| \
                  ((possi_num>1)&(detect_num==1))] = 2
 
-        mulscore[(detect_num==0)&(possi_num<=3)&(possi_num>0)] = 3
+        mulscore[(detect_num==0)&(possi_num<=2)&(possi_num>0)] = 3
 
-        mulscore[(detect_num==0)&(possi_num>3)] = 4
+        mulscore[(detect_num==0)&(possi_num>2)] = 4
 
         # If it's 0/0 with the highest predicted flux which is greater than the sub-highest \
         # by a factor or 10, increse its weight
@@ -1506,8 +1523,9 @@ class Line_list(object):
                 # Append the index of peripheral line 
                 index = np.append(index,len(self.lineframe)-1)
 
-                lineinfo =  f'Number {num+1} \tObserved line:\t{line:.5f} \t {obs_flux:.2E}\t'+ \
-                            f'SNR:{np.around(self.snr[num],2)}\tFWHM:{np.around(self.fwhm[num],2)}\n'
+                lineinfo =  f'Number {num+1}   Observed_line:{line:.5f}   Flux:{obs_flux:.2E}   '+ \
+                            f'Flux_err:{self.obsflux_err[num]:.2E}   '+ \
+                            f'SNR:{np.around(self.snr[num],2)}   FWHM:{np.around(self.fwhm[num],2)}\n'
 
                 # Sort each column by the index and generate the output arrays
                 score = score[index]
@@ -1521,7 +1539,7 @@ class Line_list(object):
                 termlist = np.zeros(length,dtype='<U23')
                 configlist = np.zeros(length,dtype='<U71')
                 multinota = np.zeros(length,dtype='<U6')
-                idi = np.zeros(length,dtype='<U10')
+                id = np.zeros(length,dtype='<U10')
                 wav_nota1 = np.zeros(length,dtype='<U1')
                 flux_nota = np.zeros(length,dtype='<U1')
                 scores = score.copy()
@@ -1531,7 +1549,7 @@ class Line_list(object):
                 # Generate the strings
                 term(self.lineframe,self.tab_termnum,self.tab_ele,self.tab_stat,self.tab_term,\
                      self.tab_conf,uniquescore,scores,self.possi_num,self.detect_num,self.elesymarr,\
-                     self.ionstatarr,self.wavscore,termlist,configlist,ranklist,multinota,idi,\
+                     self.ionstatarr,self.wavscore,termlist,configlist,ranklist,multinota,id,\
                      wav_nota1,flux_nota,obs_flux)
 
                 self.flux = self.flux[index]
@@ -1546,7 +1564,7 @@ class Line_list(object):
                                 self.wav_cor, \
                                 self.wav_nota2, \
                                 self.lineframe[:,0], \
-                                idi, \
+                                id, \
                                 termlist,\
                                 flux_nota,\
                                 flux, \
@@ -1562,14 +1580,29 @@ class Line_list(object):
                                 ),axis=-1)
                 
                 # output are sorted by scores
-                out = out[out[:,9].astype(int).argsort()]
+                ix = out[:,9].astype(int).argsort()
+                out = out[ix]
                 Aout = out[(out[:,11]=='A')|(out[:,10]=='^')]
                 Astr = ''.join(f'{i[4]}  {i[3]:.9s}, ' for i in Aout)
+
+                if self.erc_list:
+                    # 检查是否有既是A又有~的，并且没有评级为A但没有~的
+                    if sum(('~'==out[:,6])&('A'==out[:,11])) and sum(('A'==out[:,11])&(('~'!=out[:,6]))) == 0 and obs_flux>=1e-4:
+                        subA = out[(out[:,6]=='~')&(out[:,11]=='A')]
+                        valid = ['O II','N II']
+                        if line == 4283.73:
+                            breakpoint()
+                        if (len(subA) > 1 and (all(i in valid for i in np.unique(subA[:,4])) or 'He I' in np.unique(subA[:,4]))) or len(subA) == 1:
+                            opt = subA[0]
+                            # if  1/5 <= float(opt[7])/obs_flux <= 5:
+                            # erc_num = int(self.lineframe[(self.lineframe[:,0]==float(opt[3]))&(id==opt[4])][0][14])
+                            with open(f'{self.name}_erc.dat','a') as erc_f:
+                                erc_f.write(f'{line:8.2f}  {obs_flux:9.2E}  {self.obsflux_err[num]:9.2E}  {opt[4]:8s}  {float(opt[3]):.3f}\n')
 
 
                 # Write the complete output file
                 np.savetxt(f1,out,fmt='%-2s%-9.8s%-3s%-13.9s%-11s%-23s%-1s%-11.8s%-6s%-6s%-1s%-5s%-10.8s' \
-                                     +'%-54s%-71s%-5s%-5s',header=lineinfo,footer='\n\n',comments='')
+                                     +'%-56s%-71s%-5s%-5s',header=lineinfo,footer='\n\n',comments='')
 
                 # Write the brief output file 
                 f2.write(f'{line:8.2f}  {obs_flux:9.2E}  |  {Astr} \n')
@@ -1579,12 +1612,12 @@ class Line_list(object):
 
 
 if __name__ == "__main__":
-    # hf22 = np.loadtxt('../test/Hf2-2_linelist.txt',skiprows=1)
-    # hf22_out = Line_list(wavelength=hf22[:,0],wavelength_error=10,flux=hf22[:,1],snr=hf22[:,2],fwhm=hf22[:,3])    
-    # hf22_out.identify('Hf2-2',abun_type='nebula')
+    hf22 = np.loadtxt('../test/Hf2-2_linelist.txt',skiprows=1)
+    hf22_out = Line_list(wavelength=hf22[:,0],wavelength_error=10,flux=hf22[:,1],flux_error=hf22[:,1]*hf22[:,2]*0.01,snr=hf22[:,3],fwhm=hf22[:,4])    
+    hf22_out.identify('Hf2-2',abun_type='nebula',erc_list=True)
     # J0608 = pd.read_table('../test/J0608_linelist.txt',delim_whitespace=True)
     # J0608_out = Line_list(wavelength=J0608.wave_cor.values,wavelength_error=30,flux=J0608.F.values,snr=J0608.snr.values,fwhm=J0608.fwhm.values)
     # J0608_out.identify('J0608_2',Te=30000,abun_type='../test/abun_WC.dat')
-    ic418 = np.loadtxt('../test/ic418_linelist.txt',skiprows=1)
-    ic418_out = Line_list(wavelength=ic418[:,0],wavelength_error=10,flux=ic418[:,3],snr=ic418[:,5],fwhm=ic418[:,4])
-    ic418_out.identify('ic418_2',abun_type='nebula')
+    # ic418 = np.loadtxt('../test/ic418_linelist.txt',skiprows=1)
+    # ic418_out = Line_list(wavelength=ic418[:,0],wavelength_error=10,flux=ic418[:,3],snr=ic418[:,5],fwhm=ic418[:,4])
+    # ic418_out.identify('ic418_2',abun_type='nebula',erc_list=True)
