@@ -84,11 +84,15 @@ class Line_list(object):
         # Boltzmman constant in the unit of eV/K.
         self.k = 8.617333262e-5
 
+        
         if ral_vel:
-            if isinstance(ral_vel,(float,int)):
-                self.wav = (self.c-ral_vel)*self.wav/self.c
-            else:
-                print("Invalid type of 'ral_vel', set to 0.")
+            self.ral_vel = ral_vel
+        else:
+            self.ral_vel = None
+        #     if isinstance(ral_vel,(float,int)):
+        #         self.wav = (self.c-ral_vel)*self.wav/self.c
+        #     else:
+        #         print("Invalid type of 'ral_vel', set to 0.")
 
 
         # Initialize the arrays of wavelength uncertainties, snr, and fwhm
@@ -256,17 +260,17 @@ class Line_list(object):
         # The elemental abundances table
         if abun_type == 'solar':
             self.abunfile = pd.read_table(os.path.join(self.rootdir,'pyemili','abundance','abun_solar.dat'),\
-                                delim_whitespace=True,names=['id','abun'],comment='#')
+                                sep='\s+',names=['id','abun'],comment='#')
             print('Use Solar Abundance')
 
         elif abun_type == 'nebula':
             self.abunfile = pd.read_table(os.path.join(self.rootdir,'pyemili','abundance','abun_nebula.dat'),\
-                                delim_whitespace=True,names=['id','abun'],comment='#')
+                                sep='\s+',names=['id','abun'],comment='#')
             print('Use Nebula Abundance')
 
         elif type(abun_type) == str:
              self.abunfile = pd.read_table(abun_type,\
-                                delim_whitespace=True,names=['id','abun'],comment='#') 
+                                sep='\s+',names=['id','abun'],comment='#') 
              print(f"Use Specified Abundance From '{abun_type}'")    
 
         else:
@@ -514,6 +518,9 @@ class Line_list(object):
         else:
             self.match_lines(match_list)
 
+        if self.ral_vel:
+            self.v_cor += self.ral_vel
+
 
 
     def _deplete(self,deplete):
@@ -644,7 +651,7 @@ class Line_list(object):
 
         # If `match_list` exists
         if match_table is None:
-            lines = pd.read_table(match_list,delim_whitespace=True,\
+            lines = pd.read_table(match_list,sep='\s+',\
                 names=['obs_wav','lab_wav','ele','ion','flux'])
 
             
@@ -1128,7 +1135,7 @@ class Line_list(object):
         details of each parameter.
         """
         Ni = abun*np.exp(-lowene*1240*1e-7/(self.k*self.Te))
-        Wik = Ni*jk*(wavl)**2*Aki
+        Wik = Ni*jk*(wavl)**4*Aki
 
         return Wik
 
@@ -1317,6 +1324,10 @@ class Line_list(object):
         exscore = np.zeros_like(wavscore)
         exscore[(self.lineframe[:,1]==2)&(self.lineframe[:,2]==1)] = self.HeIexp
         exscore[(self.lineframe[:,1]==2)&(self.lineframe[:,2]==2)] = self.HeIIexp
+
+        # Fix the score for the ID with best wavscore and fluxscore
+        mulscore[(wavscore==0)&(fluxscore==0)&(mulscore>=3)] = 2
+
         # Calculate the total score
         totalscore = mulscore + fluxscore + wavscore + exscore
 
@@ -1614,10 +1625,10 @@ class Line_list(object):
 if __name__ == "__main__":
     hf22 = np.loadtxt('../test/Hf2-2_linelist.txt',skiprows=1)
     hf22_out = Line_list(wavelength=hf22[:,0],wavelength_error=10,flux=hf22[:,1],flux_error=hf22[:,1]*hf22[:,2]*0.01,snr=hf22[:,3],fwhm=hf22[:,4])    
-    hf22_out.identify('Hf2-2',abun_type='nebula',erc_list=True)
-    # J0608 = pd.read_table('../test/J0608_linelist.txt',delim_whitespace=True)
-    # J0608_out = Line_list(wavelength=J0608.wave_cor.values,wavelength_error=30,flux=J0608.F.values,snr=J0608.snr.values,fwhm=J0608.fwhm.values)
-    # J0608_out.identify('J0608_2',Te=30000,abun_type='../test/abun_WC.dat')
-    # ic418 = np.loadtxt('../test/ic418_linelist.txt',skiprows=1)
-    # ic418_out = Line_list(wavelength=ic418[:,0],wavelength_error=10,flux=ic418[:,3],snr=ic418[:,5],fwhm=ic418[:,4])
-    # ic418_out.identify('ic418_2',abun_type='nebula',erc_list=True)
+    hf22_out.identify('Hf2-2',abun_type='nebula')
+    J0608 = pd.read_table('../test/J0608_linelist.txt',sep='\s+')
+    J0608_out = Line_list(wavelength=J0608.wave_cor.values,wavelength_error=30,flux=J0608.F.values,snr=J0608.snr.values,fwhm=J0608.fwhm.values)
+    J0608_out.identify('J0608',Te=30000,abun_type='../test/abun_WC.dat')
+    ic418 = np.loadtxt('../test/ic418_linelist.txt',skiprows=1)
+    ic418_out = Line_list(wavelength=ic418[:,0],wavelength_error=10,flux=ic418[:,3],snr=ic418[:,5],fwhm=ic418[:,4])
+    ic418_out.identify('ic418',abun_type='nebula')

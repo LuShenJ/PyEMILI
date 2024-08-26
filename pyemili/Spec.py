@@ -4,7 +4,7 @@
 import numpy as np
 import matplotlib
 matplotlib.use("TkAgg")
-matplotlib.rcParams.update({'font.size': 15})
+matplotlib.rcParams.update({'font.size': 20})
 from matplotlib import pyplot as plt
 from astropy.io import fits
 from scipy import signal
@@ -20,7 +20,7 @@ c = 2.9979246*10**5
 
 def Spec_line_finding(filename, wavelength_unit='angstrom', ral_vel=0, length=100, \
     percentile=25, check_continuum=True, save_continuum=False,  vel_cor=False, snr_threshold=7, \
-    prominence=6, check_lines=True, **kwargs):
+    prominence=6, check_lines=True, append=False, **kwargs):
     """ 
     An integrated function for spectral lines finding. The processes include: 
     * (1) Reading the spectrum from specified file.
@@ -119,7 +119,7 @@ def Spec_line_finding(filename, wavelength_unit='angstrom', ral_vel=0, length=10
 
     # Read the spectrum
     flux,waves = readfile(filename, wavelength_unit=wavelength_unit, ral_vel=ral_vel, **dic_readfile)
-
+    # flux = flux*1e14
     # Fit and subtract the continuum
     flux,con,con_std= subtract_continuum(flux, waves, check=check_continuum, save=save_continuum,\
                                          length=length, percentile=percentile, con_name=name, \
@@ -133,7 +133,7 @@ def Spec_line_finding(filename, wavelength_unit='angstrom', ral_vel=0, length=10
 
     # Find the spectral lines
     find_lines(flux, waves, con, con_std, fl_snr_threshold=snr_threshold, prominence=prominence, \
-                   show_graph=check_lines, linelist_name=name, **dic_find_line)
+                   show_graph=check_lines, linelist_name=name, append=append, **dic_find_line)
 
 
 
@@ -334,7 +334,7 @@ def subtract_continuum(flux, wavelength, percentile=25, multiple=3, length=100, 
 
     # Compute the continuum of the spectrum
     continuum = _subtract_continuum(flux, wavelength, length, percentile)
-
+    
     # If plot is available
     if check:
 
@@ -348,11 +348,13 @@ def subtract_continuum(flux, wavelength, percentile=25, multiple=3, length=100, 
         fig = plt.figure(figsize=(16,9))
 
         while yn == 'n':
-            plt.plot(wavelength,flux)
+            # plt.plot(wavelength,flux,'grey')
+            plt.step(wavelength,flux, where='mid',color='black')
             plt.plot(wavelength,continuum,'--',color='r')
-            plt.title(con_name)
-            plt.xlabel('Wavelength [$\\rm{\AA}$]',fontsize=18)
-            plt.ylabel('Flux [$\\rm{ergs\\,cm^{-2}\\,s^{-1}\\,\AA^{-1}}$]',fontsize=18)
+            # plt.title(con_name)
+            plt.xlabel('Wavelength [$\\rm{\AA}$]',fontsize=22)
+            plt.ylabel('Relative Flux',fontsize=22)
+            # plt.ylabel('Flux [$10^{-14}\\,\\rm{ergs\\,cm^{-2}\\,s^{-1}\\,\AA^{-1}}$]',fontsize=22)
             yn = ''
             yn = input("Press 'y' to finish or 'n' to reset the parameters: ")
 
@@ -533,7 +535,7 @@ def _get_fit_params(wavelength,subwav,subflux,continuum,subcon,\
 
     if len(peaks) == 0:
         if announce:
-            print('Cannot find any peak.')
+            print('Cannot find any peak. Try reducing the ''prominence''')
 
         return 0
     
@@ -580,13 +582,16 @@ def _get_fit_params(wavelength,subwav,subflux,continuum,subcon,\
 
         y_fit = multi_gauss(wavelength[margin_left:margin_right+1],*popt)
 
+        if len(y_fit) == 0:
+            continue
+
         # If it's absorption profile
         if popt[2] < 0:
             sub_c = continuum[margin_left:margin_right+1]
             sumFlux = sum(y_fit/sub_c)*(subwav[1]-subwav[0])
 
         else:
-            sumFlux = sum(y_fit)
+            sumFlux = sum(y_fit)*(wavelength[1]-wavelength[0])
 
         output.append([line_center,snr,res,margin_left,\
             margin_right,y_fit,peak_flux,sumFlux,fwhm])
@@ -595,7 +600,7 @@ def _get_fit_params(wavelength,subwav,subflux,continuum,subcon,\
 
 
 def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, fl_snr_threshold=7, \
-    prominence=6, show_graph=True, Chi2_threshold=0.2, fwhm_threshold=[8,200]):
+    prominence=6, show_graph=True, Chi2_threshold=0.2, fwhm_threshold=[8,200],append=False):
     """
     Find spectral lines based on `scipy.find_peaks`.
 
@@ -701,11 +706,12 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
 
     if show_graph:
         fig = plt.figure(figsize=(16,9))
-        main = plt.plot(wavelength,flux,'grey')
-        plt.title(linelist_name)
-        plt.suptitle("Press 'x' to specify the boundary of the new added line, press 'd' to remove line.")
-        plt.xlabel('Wavelength [$\\rm{\AA}$]',fontsize=18)
-        plt.ylabel('Flux [$\\rm{ergs\\,cm^{-2}\\,s^{-1}\\,\AA^{-1}}$]',fontsize=18)
+        plt.step(wavelength,flux,where='mid',color='black')
+        # plt.title(linelist_name)
+        # plt.suptitle("Press 'x' to specify the boundary of the new added line, press 'd' to remove line.")
+        plt.xlabel('Wavelength [$\\rm{\AA}$]',fontsize=22)
+        plt.ylabel('Relative Flux',fontsize=22)
+        # plt.ylabel('Flux [$10^{-14}\\,\\rm{ergs\\,cm^{-2}\\,s^{-1}\\,\AA^{-1}}$]',fontsize=22)
 
     output = []
     # wavindice = []
@@ -751,8 +757,12 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
             num += 1
             auto_line = plt.plot(wavelength[output[i][3]:output[i][4]+1],output[i][5],\
                                 '--',color=c[num%2])
-            auto_line1 = plt.text(output[i][0],output[i][6]*1.1,\
-                                f'{output[i][0]:.3f}',rotation=90)
+            if output[i][1] > 0:
+                auto_line1 = plt.text(output[i][0],max(output[i][5])+0.03,\
+                                f'{output[i][0]:.3f}',rotation=90,horizontalalignment='center', verticalalignment='bottom')
+            else:
+                auto_line1 = plt.text(output[i][0],min(output[i][5])-0.03,\
+                                f'{output[i][0]:.3f}',rotation=90,horizontalalignment='center', verticalalignment='top')
             lines.append([wavelength[output[i][3]],wavelength[output[i][4]],\
                             auto_line,auto_line1,output[i][0]])
 
@@ -784,7 +794,7 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
                     rdx = np.argmin(abs(wavelength-edge[1]))
                     x = wavelength[ldx:rdx+1]
                     y = flux[ldx:rdx+1]
-                    print(f'Total observed flux (original): {sum(y):.3e}')
+                    print(f'Total observed flux (original): {sum(y)*(x[1]-x[0]):.3e}')
                     subcon = continuum_unc[ldx:rdx+1]
 
                     out = _get_fit_params(wavelength,x,y,continuum,subcon,\
@@ -793,8 +803,11 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
                     if out != 0:
                         print('Successful line fitting.')
                         for i in out:
-                            line = plt.plot(wavelength[i[3]:i[4]+1],i[5],'--',color='orange')
-                            line1 = plt.text(i[0],i[6]*1.1,f'{i[0]:.3f}',rotation=90)
+                            line = plt.plot(wavelength[i[3]:i[4]+1],i[5],'--',color='green',linewidth=2)
+                            if i[1]>0:
+                                line1 = plt.text(i[0],max(i[5])+0.03,f'{i[0]:.3f}',rotation=90,horizontalalignment='center', verticalalignment='bottom')
+                            else:
+                                line1 = plt.text(i[0],min(i[5])-0.03,f'{i[0]:.3f}',rotation=90,horizontalalignment='center', verticalalignment='top')
                             output.append(i)
                             lines.append([wavelength[i[3]],wavelength[i[4]],line,line1,i[0]])
 
@@ -829,6 +842,7 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
 
     if show_graph:
         fig.canvas.mpl_connect('key_press_event', key_event)
+        plt.tight_layout()
         plt.show()
 
 
@@ -846,7 +860,11 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
     if not linelist_name:
         linelist_name = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
 
-    np.savetxt(f'{linelist_name}.txt',out,fmt='%-12.3f %-12.2e %-12.2f %-12.1f %-12.4f')
+    if append:
+        with open(f'{linelist_name}_linelist.txt','a') as f:
+            np.savetxt(f,out,fmt='%-12.3f %-12.2e %-12.2f %-12.1f %-12.4f')  
+    else:
+        np.savetxt(f'{linelist_name}_linelist.txt',out,fmt='%-12.3f %-12.2e %-12.2f %-12.1f %-12.4f')
     
 
 
