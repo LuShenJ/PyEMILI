@@ -1,4 +1,3 @@
-.gitignore
 .DS_Store
 /pyemili.egg-info
 /pyemili/__pycache__/
