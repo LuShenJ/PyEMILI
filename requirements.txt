@@ -1,8 +1,0 @@
-# YOU WILL HAVE TO INSTALL THESE PACKEAGES TO ENABLE PYEMILI.
-numpy
-scipy
-matplotlib
-numba>=0.56.1
-pandas>=2.0.3
-astropy
-tqdm
