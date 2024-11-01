@@ -6,15 +6,15 @@ import pandas as pd
 
 
 # run IC418 line identifications
-ic418 = np.loadtxt('ic418_linelist.txt',skiprows=1)
-ic418_out = Line_list(wavelength=ic418[:,0],wavelength_error=10,flux=ic418[:,3],snr=ic418[:,5],fwhm=ic418[:,4])
-ic418_out.identify('ic418',abun_type='nebula')
+# ic418 = np.loadtxt('ic418_linelist.txt',skiprows=1)
+# ic418_out = Line_list(wavelength=ic418[:,0],wavelength_error=10,flux=ic418[:,3],snr=ic418[:,5],fwhm=ic418[:,4])
+# ic418_out.identify('ic418_test',abun_type='nebula')
 
 
 # # run Hf 2-2 line identifications
-# hf22 = np.loadtxt('Hf2-2_linelist.txt',skiprows=1)
-# hf22_out = Line_list(wavelength=hf22[:,0],wavelength_error=10,flux=hf22[:,1],snr=hf22[:,2],fwhm=hf22[:,3])
-# hf22_out.identify('Hf2-2',abun_type='nebula')
+hf22 = np.loadtxt('Hf2-2_linelist.txt',skiprows=1)
+hf22_out = Line_list(wavelength=hf22[:,0],wavelength_error=10,flux=hf22[:,1],snr=hf22[:,2],fwhm=hf22[:,3])
+hf22_out.identify('Hf2-2',abun_type='nebula')
 
 
 

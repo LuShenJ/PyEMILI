@@ -1,6 +1,14 @@
-## Automatic Line Finding
+## Automatic Line Searching
 
-`pyemili.Spec` has one integrated function called `Spec_line_finding`, can be easily used to automatically read the spectrum, fit the continuum, correct the radial velocity if it's needed, and find the spectral lines. Let's start with a simple example:
+The new `Spec` module allows for both automated and manual searches of spectral lines, making it easier to process deep spectra and detect even faint spectral features with high efficiency.
+
+Key features of `Spec` module include:
+- **Automatic Continuum Fitting**: PyEMILI automates the process of continuum estimation, facilitating accurate spectral line identification across a variety of datasets. The method is similar to the median filter technique. More details can be found in PyEMILI paper Section 2.7 or [(Automated Line Fitting Algorithm; Wesson 2016)](http://doi.org/10.1093/mnras/stv2946).
+- **Flexible Parameter Adjustment**: Users can customize key settings such as the Signal-to-Noise (S/N) ratio threshold and peak prominence to suit the specific characteristics of their spectra.
+- **Advanced Gaussian Fitting**: PyEMILI supports both single and multi-Gaussian fitting, making it ideal for handling blended lines and complex spectral profiles.
+- **Interactive Matplotlib-Based Interface**: Users can inspect spectra, review detected lines, and interactively modify the results by adding or deleting lines.
+
+`pyemili.Spec` has one integrated function called `Spec_line_finding`, can be easily used to automatically read the spectrum, fit the continuum, correct the radial velocity (optional), and find the spectral lines. Let's start with a simple example:
 
 ### example
 
