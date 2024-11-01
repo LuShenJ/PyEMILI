@@ -86,13 +86,13 @@ class Line_list(object):
 
         
         if ral_vel:
+            if isinstance(ral_vel,(float,int)):
+                self.wav = (self.c-ral_vel)*self.wav/self.c
+            else:
+                print("Invalid type of 'ral_vel', set to 0.")
             self.ral_vel = ral_vel
         else:
             self.ral_vel = None
-        #     if isinstance(ral_vel,(float,int)):
-        #         self.wav = (self.c-ral_vel)*self.wav/self.c
-        #     else:
-        #         print("Invalid type of 'ral_vel', set to 0.")
 
 
         # Initialize the arrays of wavelength uncertainties, snr, and fwhm
