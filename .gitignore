@@ -1,3 +1,4 @@
+.gitignore
 .DS_Store
 /pyemili.egg-info
 /pyemili/__pycache__/
@@ -9,4 +10,3 @@
 /pyemili/eff_fit/
 /pyemili/Recom_ON.py
 /test
-.gitignore
