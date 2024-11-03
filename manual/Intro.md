@@ -26,51 +26,62 @@ The **wavelength agreement** score is based on how closely the observed line’s
 
 Lines with a closer match (lower $\Delta\lambda$) will receive a lower **W** score, indicating a better match.
 
-#### **2. Predicted Flux (F)**
-The **predicted flux** score is based on the expected intensity of the spectral line. For each putative ID within a $5\sigma$ wavelength difference (surviving the wavelength agreement assessment), the predicted flux ($I$) from a template is calculated. The highest predicted flux is denoted as $I_{\text{max}}$. Each ID is scored based on how its predicted flux compares to $I_{\text{max}}$, following these criteria:
+#### **2. Predicted Template Flux (F)**
+The **predicted template flux** in PyEMILI is scored based on the expected flux contribution from **radiative recombination**, **dielectronic recombination**, and **collisional excitation** processes. For radiative and dielectronic recombination, the flux is represented by:
+
+\[
+I_\mathrm{R} \propto L_{\rm R} = N_{\rm e}\,N_{i+1}\,C\,(\alpha_{\rm RR} + \alpha_{\rm DR})\,h\nu,
+\]
+
+where \(N_{\rm e}\) is the electron density, \(N_{i+1}\) is the ion density, \(\alpha_{\rm RR}\) and \(\alpha_{\rm DR}\) are the radiative and dielectronic recombination coefficients, respectively, and \(h\nu\) is the photon energy.
+
+For collisional excitation, the flux is represented as:
+
+\[
+I_\mathrm{C} \propto L_{\rm C} = D\,N_{\rm e}\,N_{1}\,q_{12}\,h\nu\,\frac{1}{1 + N_{\rm e}\,q_{21}/A_{21}},
+\]
+
+where \(N_{1}\) is the number density populated in the lower energy state, \(q_{12}\) and \(q_{21}\) are the collisional excitation and de-excitation rates, and \(A_{21}\) is the spontaneous transition probability.
+
+The **predicted template flux** for each line, whether **\(I_{\rm R}\)** or **\(I_{\rm C}\)**, is calculated based on the transition type:
+- **Permitted transitions** are assumed to form primarily through recombination.
+- **Forbidden transitions** are assumed to arise from collisional excitation.
+- For **intercombination transitions** (or semi-forbidden transitions), the predicted template flux is a sum of recombination and collisional excitation contributions, with the collisional excitation component diluted by a factor of 100. This factor is empirically derived from the comparisons of numerous PNe and H II regions samples.
+
+The **predicted flux** score is based on the expected intensity of the spectral line. For each putative ID within a $5\sigma$ wavelength difference (surviving the wavelength agreement assessment), the predicted flux ($I$) is calculated as mentioned above. The highest predicted flux of a unidentified line is denoted as $I_{\text{max}}$. Each ID is scored based on how its predicted flux compares to $I_{\text{max}}$, following these criteria:
 
 - **F = 0** if $I \geq 0.1I_{\text{max}}$
 - **F = 1** if $I \geq 0.01I_{\text{max}}$
 - **F = 2** if $I \geq 0.001I_{\text{max}}$
 - **F = 3** if $I \geq 0.0001I_{\text{max}}$
-- **F = 4** if $I < 0.0001I_{\text{max}}$
 
 Putative IDs with predicted fluxes less than $0.0001I_{\text{max}}$ are not considered further, as they are too weak to be reliable candidates. Higher fluxes lead to lower **F** scores, indicating a better match.
 
 #### **3. Multiplet Check (M)**
-The **multiplet check** evaluates whether the putative ID belongs to a multiplet and, if so, whether other members of the multiplet are also detected in the spectrum. Each putative ID’s multiplet members are examined, and both the number of observable multiplet members ($P$) and the number of detected multiplet members ($D$) are considered. The **M** score is determined according to the following conditions:
+The **multiplet check** evaluates whether the putative ID belongs to a multiplet and, if so, whether other members of the multiplet are also detected in the *Input Line List*. Each putative ID’s multiplet members are examined, and both the number of total multiplet members ($P$) and the number of detected multiplet members ($D$) are considered. The **M** score is determined according to the following conditions:
 
-- **M = 0** if $P = 2$, and either $D = 2$ or $D > 2$
-- **M = 1** if $P = 1$, $D = 1$, or $P > 2$, $D = 2$
-- **M = 2** if $P = 0$, $D = 0$, or $P > 1$, $D = 1$
-- **M = 3** if $P = 1$, $D = 0$, or $P = 2$, $D = 0$
-- **M = 4** if $P > 2$, $D = 0$
+- **M = 0** if $P = 2$ & $D = 2$, or $D > 2$
+- **M = 1** if $P = 1$ & $D = 1$, or $P > 2$ & $D = 2$
+- **M = 2** if $P = 0$ & $D = 0$, or $P > 1$ & $D = 1$
+- **M = 3** if $P = 1$ & $D = 0$, or $P = 2$ & $D = 0$
+- **M = 4** if $P > 2$ & $D = 0$
 
 The presence of multiple detected multiplet members improves the match, resulting in a lower **M** score.
 
 #### **4. Identification Index (IDI)**
-Finally, the **Identification Index (IDI)** is used to quantify the overall likelihood of each putative ID being the correct identification. The **IDI** is calculated as the sum of the scores from the three components:  
-\[ \text{IDI} = W + F + M \]
+Finally, the **Identification Index (IDI)** is used to quantify the overall likelihood of each putative ID being the plausible identification. The **IDI** is calculated as the sum of the scores from the three components:  
+\[ \text{IDI} = W + F + M. \]
 
-Lower **IDI** values correspond to better matches, meaning the candidate line satisfies the criteria more closely. PyEMILI provides users with multiple potential IDs for each line, ranked by their **IDI** scores, allowing users to select the most plausible identification based on the context of their analysis.
+Lower **IDI** values correspond to better matches, meaning the candidate line satisfies the criteria more closely. PyEMILI provides users with multiple potential IDs for each line, ranked by their **IDI** scores, allowing users to select the most plausible identification based on the context of analysis.
 
-This code is not meant to model the spectra, but rather to aid in the identification of weak lines by providing many alternative IDs with their possibilities defined by scores. For one spectral line to be identified by PyEMILI, it will be assessed and scored from three aspects with different criteria:
-
+#### Summary of Identification Criteria
 | W | Condition                   | F | Condition             | M   | Condition              |
 |---|-----------------------------|---|-----------------------|-----|------------------------|
-| 0 | $\Delta\lambda\leq 1 \sigma$          | 0 | $I\geq 0.1 I_{max}$    | 0  | $P=2,D=2$ or $D>2$     |
-| 1 | $1\sigma <\Delta\lambda \leq 2\sigma$ | 1 | $I\geq 0.01 I_{max}$   | 1  | $P=1,D=1$ or $P>2,D=2$ |
-| 2 | $2\sigma <\Delta\lambda \leq 3\sigma$ | 2 | $I\geq 0.001 I_{max}$  | 2  | $P=0,D=0$ or $P>1,D=1$ |
-| 3 | $3\sigma <\Delta\lambda \leq 4\sigma$ | 3 | $I\geq 0.0001 I_{max}$ | 3  | $P=1,D=0$ or $P=2,D=0$ |
+| 0 | $\Delta\lambda\leq 1 \sigma$          | 0 | $I\geq 0.1 I_{max}$    | 0  | $P=2\&D=2$ or $D>2$     |
+| 1 | $1\sigma <\Delta\lambda \leq 2\sigma$ | 1 | $I\geq 0.01 I_{max}$   | 1  | $P=1\&D=1$ or $P>2\&D=2$ |
+| 2 | $2\sigma <\Delta\lambda \leq 3\sigma$ | 2 | $I\geq 0.001 I_{max}$  | 2  | $P=0\&D=0$ or $P>1\&D=1$ |
+| 3 | $3\sigma <\Delta\lambda \leq 4\sigma$ | 3 | $I\geq 0.0001 I_{max}$ | 3  | $P=1\&D=0$ or $P=2\&D=0$ |
 | 4 | $4\sigma <\Delta\lambda \leq 5\sigma$ |   |                        | 4  | $P>2,D=0$              |
-
-**W** is the score of **wavelength agreement** component. The residual wavelength difference ($\Delta\lambda$ in km/s) between the corrected observed line's wavelength and the putative ID is within a number of standard deviations ($\sigma$) of the observed line's wavelength uncertainty.
-
-**F** is the score of **Predicted template flux** component. For the observed line, every putative IDs within $5\sigma$ wavelength difference survived in the **wavelength agreement** part will be calculated the predicted template fluxes ($I$). The highest predicted template flux is marked as $I_{max}$. Each putative ID  will be scored by comparing with $I_{max}$. IDs with predicted template flux less than 0.0001 $I_{max}$ will not be included in the candidate lines.
-
-**M** is the score of **Multiplet check** component. For each survived putative ID, code will search for the possibly observable multiplet members $P$ and detect the exist multiplet members $D$. The criteria are listed above.
-
-An identification index (IDI) is used to quantify the extent of satisfaction of each putative ID with the criteria, which defines as: **IDI=W+F+M**. This is the total score of each putative ID, with **lower score being better satisfied the criteria**.
 
 ### Definition of energy bins and ionization & velocity structure models
 
@@ -80,17 +91,17 @@ All ions are separated into 5 bins based on the ionization energies to produce s
 |---------|-------------|-------------|------------|--------|
 |0-13.6 eV| 13.6-24.7 eV| 24.7-55 eV| 55-100 eV| >100 eV|
 
-Each bin has the parameters of ionization and velocity structure models. The ionization structure model refers to the proportion of ions in a given ionization bin to the total elemental abundance of that ion. The modified abundances of ions are derived through the total abundances of the elements multiplied by the values of ionization structure model for the bins in which the ions reside. Baldwin et. al. (2000) have shown that in the rest frame of a nebula, the magnitude of the velocity difference between the observed and laboratory wavelengths is correlated with the parent ions' ionization energies. Thus, the velocity structure model aims to correct this correlation for different ions with different ionization energies.
+Each bin has the parameters of ionization and velocity structure models. The ionization structure model refers to the proportion of ions in a given ionization bin to the total elemental abundance of that ion. **The modified abundances of ions are derived through the total abundances of the elements multiplied by the values of ionization structure model for the bins in which the ions reside**. Baldwin et. al. (2000) have shown that in the rest frame of a nebula, the magnitude of the velocity difference between the observed and laboratory wavelengths is correlated with the parent ions' ionization energies. Thus, the velocity structure model aims to correct this correlation for different ions with different ionization energies.
 
 For example, the minimum energy to produce $\mathrm{O^{2+}}$ is 35.11 eV, which also means the ionization energy of the $\mathrm{O^{1+}}$. Thus, $\mathrm{O^{2+}}$ will be classified into the bin 3. And all the [O III] collisionally excited lines and O II recombination lines, whose parent ion is $\mathrm{O^{2+}}$, will use the corresponding values of ionization and velocity structure models for bin 3 to calculate their scores.
 
-Default ionization structure value for each bin:
+Initial ionization structure value for each bin:
 
 | bin 1   | bin 2       | bin 3       | bin 4      | bin 5  |
 |---------|-------------|-------------|------------|--------|
 |0.01| 0.5| 0.4| 0.1| 0.001|
 
-Default velocity structure value for each bin (in km/s):
+Initial velocity structure value for each bin (in km/s):
 
 | bin 1   | bin 2       | bin 3       | bin 4      | bin 5  |
 |---------|-------------|-------------|------------|--------|
@@ -98,11 +109,11 @@ Default velocity structure value for each bin (in km/s):
 
 ### Output files
 
-After running `pyemili.Lines.Line_list.identify()`, two files end with **'.dat'** and **'.out'** will be generate in the directory. The '.out' file contains complete candidate lines of each input observed line. The following are some of the candidate lines for an observed line. The title information is
+After running `pyemili.Lines.Line_list.identify()`, two files end with **'.dat'** and **'.out'** will be generate in the directory. The '.out' file contains complete candidate IDs of each input observed line. As an example of the results, The following presents a demonstrative output of PyEMILI's identification of an emission line observed:
 
 >`Number 98 	Observed line:	3918.93000 	 1.07E-03	SNR:226.4	FWHM:18.7`
 
-which means this observed line is the 98th line of input line list. The observed wavelength is 3918.93. Flux is 1.07e-03 relative to the $H_\beta$.
+The '.out' file is composed of individual blocks, with each block corresponding to the line identification of a single obserevd line. Each block begins with header information as shown above, which means this observed line is the 98th line of *Input Line List*. The observed wavelength is 3918.93 angstroms. Flux is 1.07e-03 relative to the $H_\beta=1$.
 
 ![out file](./pic/out.png)
 

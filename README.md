@@ -41,4 +41,4 @@ Usage of the code and examples are [here](./manual), including the description o
 
 ## Troubleshooting
 
-Any problems using the code and bugs or issues, please email <zjtu@bao.ac.cn>.
+Any problems about the code and bugs or issues, please email <zjtu@bao.ac.cn> or <fangx@nao.cas.cn>.
