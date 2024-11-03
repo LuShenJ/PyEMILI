@@ -29,21 +29,20 @@ Lines with a closer match (lower $\Delta\lambda$) will receive a lower **W** sco
 #### **2. Predicted Template Flux (F)**
 The **predicted template flux** in PyEMILI is scored based on the expected flux contribution from **radiative recombination**, **dielectronic recombination**, and **collisional excitation** processes. For radiative and dielectronic recombination, the flux is represented by:
 
-\[
-I_\mathrm{R} \propto L_{\rm R} = N_{\rm e}\,N_{i+1}\,C\,(\alpha_{\rm RR} + \alpha_{\rm DR})\,h\nu,
-\]
 
-where \(N_{\rm e}\) is the electron density, \(N_{i+1}\) is the ion density, \(\alpha_{\rm RR}\) and \(\alpha_{\rm DR}\) are the radiative and dielectronic recombination coefficients, respectively, and \(h\nu\) is the photon energy.
+$$I_\mathrm{R} \propto L_{\rm R} = N_{\rm e}\,N_{i+1}\,C\,(\alpha_{\rm RR} + \alpha_{\rm DR})\,h\nu,$$
+
+
+where $N_{\rm e}$ is the electron density, $N_{i+1}$ is the ion density, $\alpha_{\rm RR}$ and $\alpha_{\rm DR}$ are the radiative and dielectronic recombination coefficients, respectively, and $h\nu$ is the photon energy.
 
 For collisional excitation, the flux is represented as:
 
-\[
-I_\mathrm{C} \propto L_{\rm C} = D\,N_{\rm e}\,N_{1}\,q_{12}\,h\nu\,\frac{1}{1 + N_{\rm e}\,q_{21}/A_{21}},
-\]
 
-where \(N_{1}\) is the number density populated in the lower energy state, \(q_{12}\) and \(q_{21}\) are the collisional excitation and de-excitation rates, and \(A_{21}\) is the spontaneous transition probability.
+$$I_\mathrm{C} \propto L_{\rm C} = D\,N_{\rm e}\,N_{1}\,q_{12}\,h\nu\,\frac{1}{1 + N_{\rm e}\,q_{21}/A_{21}},$$
 
-The **predicted template flux** for each line, whether **\(I_{\rm R}\)** or **\(I_{\rm C}\)**, is calculated based on the transition type:
+where $N_{1}$ is the number density populated in the lower energy state, $q_{12}$ and $q_{21}$ are the collisional excitation and de-excitation rates, and $A_{21}$ is the spontaneous transition probability.
+
+The **predicted template flux** for each line, whether **$I_{\rm R}$** or **$I_{\rm C}$**, is calculated based on the transition type:
 - **Permitted transitions** are assumed to form primarily through recombination.
 - **Forbidden transitions** are assumed to arise from collisional excitation.
 - For **intercombination transitions** (or semi-forbidden transitions), the predicted template flux is a sum of recombination and collisional excitation contributions, with the collisional excitation component diluted by a factor of 100. This factor is empirically derived from the comparisons of numerous PNe and H II regions samples.
