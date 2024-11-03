@@ -76,11 +76,11 @@ Lower **IDI** values correspond to better matches, meaning the candidate line sa
 #### Summary of Identification Criteria
 | W | Condition                   | F | Condition             | M   | Condition              |
 |---|-----------------------------|---|-----------------------|-----|------------------------|
-| 0 | $\Delta\lambda\leq 1 \sigma$          | 0 | $I\geq 0.1 I_{max}$    | 0  | $P=2\&D=2$ or $D>2$     |
-| 1 | $1\sigma <\Delta\lambda \leq 2\sigma$ | 1 | $I\geq 0.01 I_{max}$   | 1  | $P=1\&D=1$ or $P>2\&D=2$ |
-| 2 | $2\sigma <\Delta\lambda \leq 3\sigma$ | 2 | $I\geq 0.001 I_{max}$  | 2  | $P=0\&D=0$ or $P>1\&D=1$ |
-| 3 | $3\sigma <\Delta\lambda \leq 4\sigma$ | 3 | $I\geq 0.0001 I_{max}$ | 3  | $P=1\&D=0$ or $P=2\&D=0$ |
-| 4 | $4\sigma <\Delta\lambda \leq 5\sigma$ |   |                        | 4  | $P>2,D=0$              |
+| 0 | $\Delta\lambda\leq 1 \sigma$          | 0 | $I\geq 0.1 I_{max}$    | 0  | $P = 2$ & $D = 2$, or $D > 2$     |
+| 1 | $1\sigma <\Delta\lambda \leq 2\sigma$ | 1 | $I\geq 0.01 I_{max}$   | 1  | $P = 1$ & $D = 1$, or $P > 2$ & $D = 2$ |
+| 2 | $2\sigma <\Delta\lambda \leq 3\sigma$ | 2 | $I\geq 0.001 I_{max}$  | 2  | $P = 0$ & $D = 0$, or $P > 1$ & $D = 1$ |
+| 3 | $3\sigma <\Delta\lambda \leq 4\sigma$ | 3 | $I\geq 0.0001 I_{max}$ | 3  | $P = 1$ & $D = 0$, or $P = 2$ & $D = 0$ |
+| 4 | $4\sigma <\Delta\lambda \leq 5\sigma$ |   |                        | 4  | $P > 2$ & $D = 0$              |
 
 ### Definition of energy bins and ionization & velocity structure models
 
