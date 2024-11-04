@@ -69,6 +69,7 @@ class Line_list(object):
 
         self.rootdir = os.path.abspath(os.path.join(os.path.dirname( \
                        os.path.abspath(__file__)), os.pardir))
+        
         # Array used for output
         self.elesymarr = np.array(self.elesym,dtype='<U2')
 
@@ -79,7 +80,7 @@ class Line_list(object):
         self.energybin = [0,13.6,24.7,55,100]
 
         # Speed of light in the unit of km/s.
-        self.c = 2.9979246*1.0E+5
+        self.c = 2.9979246*1e5
 
         # Boltzmman constant in the unit of eV/K.
         self.k = 8.617333262e-5
@@ -88,26 +89,22 @@ class Line_list(object):
         if ral_vel:
             if isinstance(ral_vel,(float,int)):
                 self.wav = (self.c-ral_vel)*self.wav/self.c
+                print(f'All input wavelengths have been corrected using the radial velocity v={ral_vel:.3f}')
             else:
                 print("Invalid type of 'ral_vel', set to 0.")
-            self.ral_vel = ral_vel
-        else:
-            self.ral_vel = None
+
 
 
         # Initialize the arrays of wavelength uncertainties, snr, and fwhm
-        self.waverr = self.__init_para(wavelength_error,'Wavelength_Error')
-
-        # Parameter for checking the proper wavelength uncertainties
-        # self.waverr_pro = 0
+        self.waverr = self._init_para(wavelength_error,'Wavelength_Error')
 
         self.waverr_init = wavelength_error
 
-        self.obsflux_err = self.__init_para(flux_error,'flux_error')
+        self.obsflux_err = self._init_para(flux_error,'flux_error')
 
-        self.snr = self.__init_para(snr,'snr')
+        self.snr = self._init_para(snr,'snr')
 
-        self.fwhm = self.__init_para(fwhm,'fwhm')
+        self.fwhm = self._init_para(fwhm,'fwhm')
 
 
 
@@ -170,7 +167,7 @@ class Line_list(object):
         abun_type : str, file-like or `pathlib.Path`, optional
             The input elemental abundance table. Here are 2 options: 'solar' (M. Asplund et al. 2009),
             'nebula' (Osterbrock & Ferland 2006). Default is 'solar'. Besides, you can use the filename 
-            of other abundance file as input.
+            of other abundance file as input. The format can be referred to the table in pyemili\abundance.
         col_cor : float, optional
             The dilution factor of the collisional excitation intensity. Set to 0 as no collisionally 
             excited lines. Default is 0.1.
@@ -190,6 +187,8 @@ class Line_list(object):
         self.sigma = sigma
 
         self.Ne = Ne
+
+        self.Te = Te
 
         self.I = I
 
@@ -251,6 +250,7 @@ class Line_list(object):
         lowlmt = self.wav.min()+self.waverr[self.wav.argmin(),0]*self.wav.min()*3*sigma/self.c      
         self.linedb = self.linedb[(self.linedb[:,0]>=lowlmt)&(self.linedb[:,0]<=uplmt)]
         self.linedb = np.asfortranarray(self.linedb)
+
         # The radiative recombination coefficients table
         self.RR = np.loadtxt(os.path.join(self.rootdir,'pyemili','recom','RR_rate.dat'),skiprows=1)
 
@@ -277,7 +277,6 @@ class Line_list(object):
             print("Invalid input 'abun_type'.")
             sys.exit()
 
-        self.Te = Te
 
         eff_coe=True
         self.eff_coe = eff_coe
@@ -286,30 +285,36 @@ class Line_list(object):
 
             effcoe_ion = ['HI','HeI','HeII','CII','NII','OII','NeII']
             self.effcoe_num = np.array([[1,1],[2,1],[2,2],[6,2],[7,2],[8,2],[10,2]]) - 1
+
             # Initialize the ranges of Te and Ne of each specie
-            self.HI_Ne = 10**np.linspace(2,14,num=13)
-            self.HI_Te = 1e2*np.array([5,10,30,50,75,100,125,150,200,300])
+            self.coeTe = np.load(os.path.join(self.rootdir,'pyemili','eff_reccoe',\
+                                'eff_Te.npy'),allow_pickle=True).item()
+            self.coeNe = np.load(os.path.join(self.rootdir,'pyemili','eff_reccoe',\
+                                'eff_Ne.npy'),allow_pickle=True).item()
+            # # Initialize the ranges of Te and Ne of each specie
+            # self.HI_Ne = 10**np.linspace(2,14,num=13)
+            # self.HI_Te = 1e2*np.array([5,10,30,50,75,100,125,150,200,300])
 
-            self.HeI_Ne = 10**np.array([2,2.5,3,3.5,4,4.5,5,5.5,6])
-            self.HeI_Te = 10**(np.arange(26,46)*0.1)
+            # self.HeI_Ne = 10**np.array([2,2.5,3,3.5,4,4.5,5,5.5,6])
+            # self.HeI_Te = 10**(np.arange(26,46)*0.1)
 
-            self.HeII_Ne = 10**np.linspace(2,14,num=13)
-            self.HeII_Te = 1e2*np.array([5,10,30,50,75,100,125,150,200,300,500,1000])
+            # self.HeII_Ne = 10**np.linspace(2,14,num=13)
+            # self.HeII_Te = 1e2*np.array([5,10,30,50,75,100,125,150,200,300,500,1000])
 
-            self.CII_Ne = np.array([1e4])
-            # self.CII_Te = 10**np.linspace(2,4.6,num=27)
-            self.CII_Te = np.array([500,750,1000,1250,1500,2000,2500,3500,5000,7500,\
-                           10000,12500,15000,20000])
+            # self.CII_Ne = np.array([1e4])
+            # # self.CII_Te = 10**np.linspace(2,4.6,num=27)
+            # self.CII_Te = np.array([500,750,1000,1250,1500,2000,2500,3500,5000,7500,\
+            #                10000,12500,15000,20000])
 
-            self.OII_Ne = 10**np.linspace(2,5,num=16)
-            self.OII_Te = 10**np.linspace(2,4.4,num=25)
+            # self.OII_Ne = 10**np.linspace(2,5,num=16)
+            # self.OII_Te = 10**np.linspace(2,4.4,num=25)
 
-            self.NII_Te = np.array([126,158,200,251,316,398,501,631,794,1000,1260,1580,\
-                            2000,2510,3160,3980,5010,6310,7940,10000,12600,15800,20000])
-            self.NII_Ne = 10**np.linspace(2,6,num=41)
+            # self.NII_Te = np.array([126,158,200,251,316,398,501,631,794,1000,1260,1580,\
+            #                 2000,2510,3160,3980,5010,6310,7940,10000,12600,15800,20000])
+            # self.NII_Ne = 10**np.linspace(2,6,num=41)
 
-            self.NeII_Ne = 10**np.array([4,6])
-            self.NeII_Te = 1e2*np.array([10,20,30,50,75,100,125,150,200])
+            # self.NeII_Ne = 10**np.array([4,6])
+            # self.NeII_Te = 1e2*np.array([10,20,30,50,75,100,125,150,200])
             
             # Load the effective coefficients
             effcoes = nb.typed.List()
@@ -320,7 +325,8 @@ class Line_list(object):
                 exec(f"self.{i}coe = np.load(os.path.join(self.rootdir,'pyemili','eff_reccoe','{i}_emiss_data.npy'), \
                      allow_pickle=True).astype(np.float64)")
 
-                exec(f"self.{i}_ix = np.array([np.argmin(abs(self.{i}_Te-self.Te)),np.argmin(abs(self.{i}_Ne-self.Ne))])")
+                exec(f"self.{i}_ix = np.array([np.argmin(abs(self.coeTe['{i}']-self.Te)),np.argmin(abs(self.coeNe['{i}']-self.Ne))])")
+                # exec(f"self.{i}_ix = np.array([np.argmin(abs(self.{i}_Te-self.Te)),np.argmin(abs(self.{i}_Ne-self.Ne))])")
 
                 exec(f"effcoes.append(self.{i}coe)")
 
@@ -345,15 +351,15 @@ class Line_list(object):
         self.tab_conf = self.ion_tab.config.values.astype(str)
 
         # Initialize the icf and v_cor models
-        self.__init_icfvcor(match_list,icf,v_cor)
+        self._init_icfvcor(match_list,icf,v_cor)
 
         # Calculate the ionic abundances of each element
-        self.abun = self.__calcu_abun()
+        self.abun = self._calcu_abun()
 
         # Deplete or enhance the abundances of certain ions
         self.deplete = deplete
 
-        self.__deplete(deplete)
+        self._deplete(deplete)
 
         # Calculate a absolute predicted flux of H beta
         self._H_beta_flux(1)
@@ -408,7 +414,6 @@ class Line_list(object):
                 self._firstrun()
             
 
-                
 
 
     def _H_beta_flux(self,typeh):
@@ -428,7 +433,7 @@ class Line_list(object):
 
 
 
-    def __init_para(self,para,paraname):
+    def _init_para(self,para,paraname):
         """
         Initialize `snr`, `fwhm`, and `wavelength_error` parameters.
         """
@@ -471,7 +476,7 @@ class Line_list(object):
     
 
 
-    def __init_icfvcor(self,match_list,icf,v_cor):
+    def _init_icfvcor(self,match_list,icf,v_cor):
         """
         Initialize the `icf` and `v_cor` parameters.
         """
@@ -518,12 +523,32 @@ class Line_list(object):
         else:
             self.match_lines(match_list)
 
-        if self.ral_vel:
-            self.v_cor += self.ral_vel
-
-
 
     def _deplete(self,deplete):
+        """
+        The main process of `deplete`.
+        """
+
+        if deplete is None:
+            pass
+
+        elif isinstance(deplete,str):
+
+            # Separate the command by comma
+            if ',' in deplete:
+                deplete = deplete.split(',')
+                for i in deplete:
+                    self.__deplete(i)
+            
+            else:
+                self.__deplete(deplete)
+
+        else:
+            print("Invalid type of 'deplete'.")
+            sys.exit()
+
+
+    def __deplete(self,deplete):
         """
         Deplete or enhance the abundances of certain ions. See details in `Line_list.identify`.
         """
@@ -558,32 +583,8 @@ class Line_list(object):
 
 
 
-    def __deplete(self,deplete):
-        """
-        The main process of `deplete`.
-        """
 
-        if deplete is None:
-            pass
-
-        elif isinstance(deplete,str):
-
-            # Separate the command by comma
-            if ',' in deplete:
-                deplete = deplete.split(',')
-                for i in deplete:
-                    self._deplete(i)
-            
-            else:
-                self._deplete(deplete)
-
-        else:
-            print("Invalid type of 'deplete'.")
-            sys.exit()
-
-
-
-    def __calcu_abun(self):
+    def _calcu_abun(self):
         """
         Calculate the abundances of each ion of each element based on the determined 
         `icf` and the input table of elemental abundance.
@@ -598,8 +599,7 @@ class Line_list(object):
 
             # 'j' is the sequence number of ionization state
             for j in range(len(self.elesym)+1):
-                # if i == 7 and j == 3:
-                #     breakpoint()
+
                 if j - i >= 2:
                     break
 
@@ -869,13 +869,6 @@ class Line_list(object):
             
         rvcor = (lines.obs_wav - lines.lab_wav)*self.c/lines.lab_wav
 
-        # # Check the wavelength uncertainty
-        # sigma1 = np.std(rvcor[rvcor>=0])
-        # sigma2 = np.std(rvcor[rvcor<0])
-        # # self.waverr = self.__init_para([-sigma2,sigma1],'Wavelength_Error')
-        # self.waverr_pro = [-sigma2,sigma1]
-        # self.waverr_pro = np.std(rvcor[abs(rvcor)<=np.std(rvcor)])
-
         # If user did not specify the `v_cor` parameter
         if not self.vcoruc:
 
@@ -902,8 +895,8 @@ class Line_list(object):
             self.v_cor = np.array(rv_out)
 
 
-        self.abun = self.__calcu_abun()
-        self.__deplete(self.deplete)
+        self.abun = self._calcu_abun()
+        self._deplete(self.deplete)
 
         
         ## A dangerous function to modify the elemental abundances.
@@ -992,9 +985,6 @@ class Line_list(object):
         # Score each candidate line based on the wavelength differences
         self.wavscore[self.wavdiff< 0] = (-self.wavdiff[self.wavdiff< 0]/(wavlerr[1])).astype(int)
         self.wavscore[self.wavdiff>=0] = (-self.wavdiff[self.wavdiff>=0]/(wavlerr[0])).astype(int)
-        # wavscore[wavscore>=4] = 4
-
-        
 
         return self.wavscore
 
@@ -1102,6 +1092,7 @@ class Line_list(object):
         br : factor that convert the total recombination coefficient to effective recombination 
              coefficient.
         dd : correction factor for neutral ions.
+        rr : rr=0 when it is a forbidden line.
         """
 
         # The collisional excitation term
@@ -1260,20 +1251,6 @@ class Line_list(object):
             mulscore[(detect_num==0)&(possi_num>2)] = 3
 
         self.score_nota[self.score_nota!='^'] = ''
-        # If it is the last iteration
-        # if self.extract_done:
-        #     self.score_nota = np.zeros_like(mulscore,dtype='<U1')
-        #     # Remove the multiplet line itself
-        #     Aterm = np.concatenate(\
-        #             (self.Aterm[:sum(self.Anum[:num])],self.Aterm[sum(self.Anum[:num+1]):]))
-        #     Awave = np.concatenate(\
-        #             (self.Awave[:sum(self.Anum[:num])],self.Awave[sum(self.Anum[:num+1]):]))
-            
-        #     # Chech whether other multiplet lines are in ranking A list
-        #     cond = np.isin(self.lineframe[:,12],Aterm)
-
-        #     self.score_nota[cond] = '*'   
-        #     self.score_nota[~cond] = ' ' 
 
         return mulscore
 
@@ -1287,7 +1264,7 @@ class Line_list(object):
         # Generate the line subframe
         self.lineframe = self.linesubframe(wavl,wavlerr,self.sigma)
 
-        # If it needs complete identification
+        # If it is the last iteration
         if complete:
 
             # Generate the peripheral line subframe
@@ -1404,8 +1381,6 @@ class Line_list(object):
             pbar.set_description('SubProcessing:')
 
             for line,lineerr,obs_flux,num in zip(self.wav,self.waverr,self.obs_flux,range(len(self.wav))):
-                # if line == 4471.657:
-                #     breakpoint()
                 
                 # Calculate scores of all candidate lines
                 score = self.calcu_tatolscore(line,lineerr,obs_flux,num,complete=False)
@@ -1517,8 +1492,7 @@ class Line_list(object):
         with tqdm(total=len(self.wav)) as pbar:
             pbar.set_description('MainProcessing:')
             for line,lineerr,num,obs_flux in zip(self.wav,self.waverr,range(len(self.wav)),self.obs_flux):
-                # if line == 3218.2:
-                #     breakpoint()
+
                 score = self.calcu_tatolscore(line,lineerr,obs_flux,num).astype(int)
                 # self.lineframe[:-1] = self.lineframe[:-1][self.flux[:-1].argsort()[::-1]]
                 # self.flux[:-1] = np.sort(self.flux[:-1])[::-1] 
@@ -1598,15 +1572,12 @@ class Line_list(object):
 
                 if self.erc_list:
                     # 检查是否有既是A又有~的，并且没有评级为A但没有~的
+                    # Check for IDs with both A ranking and '~', and there are no IDs with ranking A but not '~'
                     if sum(('~'==out[:,6])&('A'==out[:,11])) and sum(('A'==out[:,11])&(('~'!=out[:,6]))) == 0 and obs_flux>=1e-4:
                         subA = out[(out[:,6]=='~')&(out[:,11]=='A')]
                         valid = ['O II','N II']
-                        if line == 4283.73:
-                            breakpoint()
                         if (len(subA) > 1 and (all(i in valid for i in np.unique(subA[:,4])) or 'He I' in np.unique(subA[:,4]))) or len(subA) == 1:
                             opt = subA[0]
-                            # if  1/5 <= float(opt[7])/obs_flux <= 5:
-                            # erc_num = int(self.lineframe[(self.lineframe[:,0]==float(opt[3]))&(id==opt[4])][0][14])
                             with open(f'{self.name}_erc.dat','a') as erc_f:
                                 erc_f.write(f'{line:8.2f}  {obs_flux:9.2E}  {self.obsflux_err[num]:9.2E}  {opt[4]:8s}  {float(opt[3]):.3f}\n')
 
