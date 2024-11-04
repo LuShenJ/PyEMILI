@@ -11,9 +11,10 @@ linedb = os.path.join(os.path.dirname(__file__), 'pyemili','Line_dataset','Lined
 with zipfile.ZipFile(linedb, 'r') as zip_ref:
     zip_ref.extractall(linedb_path)
 
+from pyemili.version import __version__
 
 setup(name='pyemili', 
-      version='1.0.0',
+      version=__version__,
       description='Spectral lines identifier',
       long_description=open(os.path.join(os.path.dirname(__file__), 'README.md')).read(),
       author='Zhijun Tu, Xuan Fang, Robert Williams',
