@@ -45,7 +45,7 @@ def effcoe_cal(flux, eff_ix, ele, ionnum, abun,  effcoes, effcoe_num, \
     cond = (eff_ix != 0)
     for i in nb.prange(sum(cond)):
 
-        for j in nb.prange(len(effcoe_num)):
+        for j in range(len(effcoe_num)):
 
             if ele[cond][i] == effcoe_num[j,0] and ionnum[cond][i] == effcoe_num[j,1]:
 
