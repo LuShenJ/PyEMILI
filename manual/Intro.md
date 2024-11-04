@@ -69,7 +69,7 @@ The presence of multiple detected multiplet members improves the match, resultin
 
 #### **4. Identification Index (IDI)**
 Finally, the **Identification Index (IDI)** is used to quantify the overall likelihood of each putative ID being the plausible identification. The **IDI** is calculated as the sum of the scores from the three components:  
-\[ \text{IDI} = W + F + M. \]
+$$ \text{IDI} = W + F + M. $$
 
 Lower **IDI** values correspond to better matches, meaning the candidate line satisfies the criteria more closely. PyEMILI provides users with multiple potential IDs for each line, ranked by their **IDI** scores, allowing users to select the most plausible identification based on the context of analysis.
 
