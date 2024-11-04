@@ -28,7 +28,7 @@ or just download the .ZIP file in the top of this repository.
 Unzip the file and in the root directory, run this in the terminal:
 
 ```
-python setup.py install
+pip install .
 ```
 
 _**NOTE**_: The version of `numba` and `numpy` should be compatible with each other. Otherwise, you may get `ImportError: Numba needs NumPy 1.** or less`. Generally I recommend keeping the latest version.
