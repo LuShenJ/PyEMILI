@@ -2,16 +2,11 @@ version = '1.0.0'
 
 from setuptools import setup, find_packages
 import os
-import zipfile
 
 
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
 
-linedb_path = os.path.join(os.path.dirname(__file__), 'pyemili','Line_dataset')
-linedb = os.path.join(os.path.dirname(__file__), 'pyemili','Line_dataset','Linedb.zip')
-with zipfile.ZipFile(linedb, 'r') as zip_ref:
-    zip_ref.extractall(linedb_path)
 
 setup(name='pyemili', 
       version=version,
@@ -25,6 +20,7 @@ setup(name='pyemili',
       package_data={'pyemili':['abundance/*.dat',
                         'Line_dataset/*.dat',
                         'Line_dataset/*.npy',
+                        'Line_dataset/*.npz',
                         'recom/*.dat',
                         'eff_reccoe/*.dat',
                         'eff_reccoe/*.npy',]

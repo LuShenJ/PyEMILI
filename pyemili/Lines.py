@@ -243,7 +243,7 @@ class Line_list(object):
         self.ele_binindex = np.load(os.path.join(self.rootdir,'pyemili','Line_dataset','elebin_index.npy')) 
 
         # The complete atomic transition database
-        self.linedb = np.load(os.path.join(self.rootdir,'pyemili','Line_dataset','Linedb.npy'))
+        self.linedb = np.load(os.path.join(self.rootdir,'pyemili','Line_dataset','Linedb.npz'))['arr_0']
 
         # Compress the atomic transition database
         uplmt = self.wav.max()+self.waverr[self.wav.argmax(),1]*self.wav.max()*3*sigma/self.c
