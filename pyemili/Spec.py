@@ -590,7 +590,7 @@ def _get_fit_params(wavelength,subwav,subflux,continuum,subcon,\
         fluxerr = abs(flux) * np.sqrt((A_err / A) ** 2 + (sigma_err / sigma) ** 2)
 
         output.append([mu,snr,fluxerr,margin_left,\
-            margin_right,y_fit,peak_flux,flux,fwhm])
+            margin_right,y_fit,peak_flux,flux,fwhm,mu_err])
     
     return output
 
@@ -638,10 +638,11 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
     out : file, 2-D ndarray
         The output line list.
         * column 1 : center wavelength 
-        * column 2 : flux 
-        * column 3 : FWHM (km/s)
-        * column 4 : SNR
-        * column 5 : flux error
+        * column 2 : wavelength error
+        * column 3 : flux
+        * column 4 : flux error
+        * column 5 : FWHM (km/s)
+        * column 6 : SNR
     """
 
     # Extra wavelength points on each boundary of the line
@@ -844,10 +845,11 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
     line_r = [i[2] for i in output]
     line_f = [i[7] for i in output]
     line_w = [i[8] for i in output]
+    line_m = [i[9] for i in output]
 
     print(f'Total of {len(line_c)} lines found.')
 
-    out = np.array(np.stack((line_c,line_f,line_w,line_s,line_r),axis=-1),dtype=np.float64)
+    out = np.array(np.stack((line_c,line_m,line_f,line_r,line_w,line_s),axis=-1),dtype=np.float64)
     out = out[out[:,0].argsort()]
     
     if not linelist_name:
@@ -855,11 +857,11 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
 
     if append:
         with open(f'{linelist_name}_linelist.txt','a') as f:
-            np.savetxt(f,out,fmt='%-12.3f %-12.2e %-12.2f %-12.1f %-12.4f')  
+            np.savetxt(f,out,fmt='%-12.3f %-12.3f %-12.2e %-12.2e %-12.2f %-12.1f')  
     else:
         np.savetxt(f'{linelist_name}_linelist.txt',out,
-                   fmt='%-12.3f %-12.2e %-12.2f %-12.1f %-12.2e',
-                   header='wavelength \t flux \t FWHM \t snr \t fluxerr')
+                   fmt='%-12.3f %-12.3f %-12.2e %-12.2e %-12.2f %-12.1f',
+                   header='wavelength \t wav_err \t flux \t flux_err \t FWHM \t snr')
     
 
 
