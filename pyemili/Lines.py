@@ -28,12 +28,10 @@ class Line_list(object):
 
             * If input is a `int` or `float` type, this value should be in the unit of km/s,
               and will be used to determine the wavelength uncertainties on both side of observed
-              lines. e.g., `10` means 10 km/s wavelength uncertainty for each side of input `wavelength`. 
-            * If input is a `1-D array-like` type, the values should be in the unit of km/s,
-              the first value will be used to determine the wavelength uncertainty on blue (left) side, 
-              another values will be used to determine the red (right) side. e.g., `[-10,30]` means 
-              10 km/s wavelength uncertainty for the blue (left) side, and 30 km/s wavelength 
-              uncertainty for the red (right) side.
+              lines. e.g., `10` means 10 km/s wavelength uncertainty for the blue-end and red-end
+              of input `wavelength`. 
+            * If input is a `1-D array-like` type, these values should be in the unit of Angstroms.
+              Each value corresponds to the wavelength uncertainty on both sides of a line.
             * If input is a `2-D array-like` type with the shape of (n,2), these values should be in the 
               unit of Angstroms. It means you specify the wavelength uncertainty on each side of each line.
 
@@ -396,7 +394,7 @@ class Line_list(object):
                             f'Electron Density: {self.Ne}\n'+\
                             f'Inst. Resolution: {self.I}\n'+\
                             f'Input Abundance Table: {abun_type}\n'
-                    if self.waverr_type != 2:
+                    if self.waverr_type == 0:
                         out_sum += f'Input Wavelength uncertainty (1 sigma): {self.waverr_init} km/s\n'
                     
                     # if self.waverr_pro != 0:
@@ -461,9 +459,9 @@ class Line_list(object):
                 return np.tile([-para,para],len(self.wav)).reshape(-1,2)
 
             # If input type is 1-D array-like
-            if waverr.ndim == 1 and len(para) == 2:
+            if waverr.ndim == 1 and len(para) == len(self.wav):
                 self.waverr_type = 1
-                return np.tile(para,len(self.wav)).reshape(-1,2)
+                return np.tile(waverr/self.wav,(2,1)).T*self.c
 
             # If input type is 2-D array-like
             elif waverr.ndim == 2 and len(para) == len(self.wav):
