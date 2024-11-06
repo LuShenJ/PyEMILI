@@ -1,4 +1,4 @@
- wav_cor       dered_flux  fluxerr  snr           fwhm
+ wavelength       flux    fluxerr  snr           fwhm
  3132.839      925.120     2.45     16.960        0.308
  3187.780     1793.079     2.31     24.820        0.468
  3203.148      594.023     3.77     13.200        0.354
