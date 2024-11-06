@@ -116,20 +116,24 @@ The '.out' file is composed of individual blocks, with each block corresponding 
 
 ![out file](./pic/out.png)
 
->**Column A** presents the wavelength of the observed line after correcting from the model of velocity structure according to each candidate's ionization energy. The '`+`' notation ahead column A means that the velocity difference is less than $1\sigma$.  
->**Column B** lists the laboratory wavelength of each candidate. If this column begins with an asterisk '`*`', it means the wavelengths of all possibly observable multiplet members of this transition are within the input instrumental resolution. All multiplet members are combined together and the wavelength is the weighed wavelength.  
->**Columns C, D, L, M and N** give the emitting ion, transition, electron configuration, and statistical weight of the lower level and upper level, respectively.  
->**Columns E** shows the predicted template flux. Those predicted template fluxes denoted by tilde '$\sim$' are calculated using effective recombination coefficient data, while some others with asterisk '`*`' mean the corresponding candidates have no reference for transition probabilities, thus a typical small value is used to calculate, e.g., $10^4\ \mathrm{s^{-1}}$ for permitted electric dipole transitions, (2) $10\ \mathrm{s^{-1}}$ for intercombination transitions, (3) $10^{-5}\ \mathrm{s^{-1}}$ for magnetic dipole and electric quadrupole, and other transitions.  
->**Columns F** is the number of associated multiplet lines that should be observable compared with the number detected, e.g., `5/1` means 5 multiplet lines should be possibly observed in the input line list, but only 1 multiplet line has been detected by the code.  
->**columns G and H**, the IDI and ranking are given for each candidate. The wedge symbol '`^`' in front of the ranking means at least one detected multiplet member is ranked as 'A' in the corresponding observed line. In such a case, the candidate line is treated as one of the best IDs regardless of whether it is ranked as 'A'.  
->**Column I** is the velocity difference between Column A and Column B, which is used as $\Delta\lambda$ in the identification criteria of **wavelength agreement**.
->**Columns J and K** show the associated multiplet lines that were possibly detected from the input line list and their velocity difference in wavelength. Up to three multiplet lines are displayed in the output.  
->**NOTE**: In each block for one observed line, the last candidate line has the **score 99 in column G**. It indicates that this line does not participate in the ranking. This line is the predicted strongest line within a wavelength difference range of 5-10 $\sigma$. It's just shown here to remind you another possibility if the input wavelength uncertainty is too low, or the possible line blending.
+>**Column (1)** Wavelength of a candidate ID corrected using the velocity-structure parameter.  The '`+`' notation in front of the wavelength means that the velocity difference in Column (9) is less than 1$\sigma$.  
+>**Column (2)** Laboratory wavelength of a candidate ID.  An asterisk '**$\ast$**' in front of the laboratory wavelength means it is a weighted-average wavelength if all the fine-structure transitions (including this candidate ID) within a multiplet have very close wavelengths, e.g., with differences smaller than the instrumental resolution.  No asterisk in this example, because it is not applicable to this case.
+>**Columns (3)** The emitting ion.
+>**Columns (4)** The lower and upper spectral terms.
+>**Columns (5)** The predicted template flux relative to H$\beta$. The value with a tilde '**$\sim$**' in front is calculated using the effective recombination coefficient, while that with an asterisk '**$\ast$**' in front indicates the transition has no transition probability in our atomic transition database and its predicted template flux is estimated using a default transition probability (see paper section 2.4.2).
+>**Columns (6)** The number of associated multiplet members that are expected to be observed, versus the number of transitions actually detected. For example, `5/1` means 5 multiplet lines should be possibly observed in the input line list, but only 1 multiplet line has been detected by the code.  
+>**columns (7)**, The identification index (IDI, IDI=W+F+M) of the candidate ID.
+>**Column (8)** Ranking of the candidate ID assigned by PyEMILI.  The wedge symbol '**$\wedge$**' in front of a ranking means at least one detected multiplet member has been ranked as 'A' for the corresponding observed line.  In this case, the candidate ID is treated as one of the best identifications regardless of whether it has been ranked as 'A'.
+>**Columns (9)** Velocity difference (in km s$^{-1}$) between the wavelengths in Column (1) and Column (2).
+>**Columns (10) & (11)** The associated multiplet members (i.e. fine-structure components belonging to the same multiplet) detected from the *Input Line List*, and their velocity difference, respectively.  Up to three multiplet line are displayed in this output.  The wedge symbol '**$\wedge$**' in front of the wavelength means this multiplet member is assigned 'A' ranking in the corresponding observed line.
+>**Columns (12)** Electron configurations of the lower and upper states.
+>**Columns (13) & (14)** Statistical weights of the lower and upper states, respectively.
+>**NOTE**: In each block for one observed line, the last candidate line has the **IDI=99 in column (7)**. It indicates that this line does not participate in the ranking. This line is the predicted strongest line within a wavelength difference range of 5-10$\sigma$. It's just shown here to remind you another possibility if the input wavelength uncertainty is too low, or the possible line blending.
 
-Another file with '.dat' is easy to understand.
+Another file with '.dat' is the output of the line list with all the A ranking IDs.
 
 ![dat file](./pic/dat.png)
 
 >**First column** is the observed wavelength.  
 >**Second column** is the line flux relative to $H_\beta$.  
->On the right side of the vertical bar are candidates with A ranking and candidates whose multiplet member is ranked as A in other observed line.
+>**On the right side of the vertical bar** are candidates with A ranking, or candidates whose multiplet member is ranked as A in other observed line.
