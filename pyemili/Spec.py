@@ -83,10 +83,11 @@ def Spec_line_finding(filename, wavelength_unit='angstrom', ral_vel=0, length=10
     out : file, 2-D ndarray
         The output line list.
         * column 1 : center wavelength 
-        * column 2 : flux 
-        * column 3 : FWHM (km/s)
-        * column 4 : SNR
-        * column 5 : flux error
+        * column 2 : wavelength error
+        * column 3 : flux
+        * column 4 : flux error
+        * column 5 : FWHM (km/s)
+        * column 6 : SNR
     """
 
     # Initialize the optional parameters in each function
@@ -554,8 +555,8 @@ def _get_fit_params(wavelength,subwav,subflux,continuum,subcon,\
         snr = float(subflux[peaks[i]]/subcon[peaks[i]])
 
         # Boundaries of profile
-        margin_left = np.argmin(np.abs(wavelength-(mu-3*sigma)))
-        margin_right = np.argmin(np.abs(wavelength-(mu+3*sigma)))
+        margin_left = np.argmin(np.abs(wavelength-(mu-5*sigma)))
+        margin_right = np.argmin(np.abs(wavelength-(mu+5*sigma)))
         peak_flux = subflux[peaks[i]]
 
 
@@ -701,8 +702,8 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
     if show_graph:
         fig = plt.figure(figsize=(16,9))
         plt.step(wavelength,flux,where='mid',color='black')
-        # plt.title(linelist_name)
-        # plt.suptitle("Press 'x' to specify the boundary of the new added line, press 'd' to remove line.")
+        plt.title(linelist_name)
+        plt.suptitle("Press 'x' to specify the boundary of the new added line, press 'd' to remove line.")
         plt.xlabel('Wavelength [$\\rm{\AA}$]',fontsize=22)
         plt.ylabel('Relative Flux',fontsize=22)
         # plt.ylabel('Flux [$10^{-14}\\,\\rm{ergs\\,cm^{-2}\\,s^{-1}\\,\AA^{-1}}$]',fontsize=22)
@@ -752,10 +753,10 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
             auto_line = plt.plot(wavelength[output[i][3]:output[i][4]+1],output[i][5],\
                                 '--',color=c[num%2])
             if output[i][1] > 0:
-                auto_line1 = plt.text(output[i][0],max(output[i][5])+0.03,\
+                auto_line1 = plt.text(output[i][0],max(output[i][5])*1.03,\
                                 f'{output[i][0]:.3f}',rotation=90,horizontalalignment='center', verticalalignment='bottom')
             else:
-                auto_line1 = plt.text(output[i][0],min(output[i][5])-0.03,\
+                auto_line1 = plt.text(output[i][0],min(output[i][5])*1.03,\
                                 f'{output[i][0]:.3f}',rotation=90,horizontalalignment='center', verticalalignment='top')
             lines.append([wavelength[output[i][3]],wavelength[output[i][4]],\
                             auto_line,auto_line1,output[i][0]])
@@ -763,7 +764,7 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
 
 
 
-    #output [line_center, snr, res, left_indice, right_indice, y_fit, peakflux, totalflux, fwhm]
+    #output [line_center, snr, res, left_indice, right_indice, y_fit, peakflux, totalflux, fwhm, waverr]
     edge = []
 
     # Functions of interactive interface
@@ -799,9 +800,9 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
                         for i in out:
                             line = plt.plot(wavelength[i[3]:i[4]+1],i[5],'--',color='green',linewidth=2)
                             if i[1]>0:
-                                line1 = plt.text(i[0],max(i[5])+0.03,f'{i[0]:.3f}',rotation=90,horizontalalignment='center', verticalalignment='bottom')
+                                line1 = plt.text(i[0],max(i[5])*1.03,f'{i[0]:.3f}',rotation=90,horizontalalignment='center', verticalalignment='bottom')
                             else:
-                                line1 = plt.text(i[0],min(i[5])-0.03,f'{i[0]:.3f}',rotation=90,horizontalalignment='center', verticalalignment='top')
+                                line1 = plt.text(i[0],min(i[5])*1.03,f'{i[0]:.3f}',rotation=90,horizontalalignment='center', verticalalignment='top')
                             output.append(i)
                             lines.append([wavelength[i[3]],wavelength[i[4]],line,line1,i[0]])
 
