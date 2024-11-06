@@ -16,7 +16,7 @@ setup(name='pyemili',
       author_email='zjtu@bao.ac.cn',
       url='https://github.com/LuShenJ/PyEMILI',
       install_requires=requirements,
-      include_package_data=True
+      include_package_data=True,
       packages=find_packages(include=['pyemili']),
       package_data={'pyemili':['abundance/*.dat',
                         'Line_dataset/*.dat',
