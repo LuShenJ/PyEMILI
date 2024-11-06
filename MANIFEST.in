@@ -1,0 +1,3 @@
+include LICENSE.txt README.rst requirements.txt setup.py
+
+global-exclude test.py Recom.py
