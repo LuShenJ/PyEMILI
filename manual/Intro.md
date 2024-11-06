@@ -37,7 +37,6 @@ where $N_{\rm e}$ is the electron density, $N_{i+1}$ is the ion density, $\alpha
 
 For collisional excitation, the flux is represented as:
 
-
 $$I_\mathrm{C} \propto L_{\rm C} = DN_{\rm e}N_{1}q_{12}h\nu\frac{1}{1 + N_{\rm e}q_{21}/A_{21}},$$
 
 where $N_{1}$ is the number density populated in the lower energy state, $q_{12}$ and $q_{21}$ are the collisional excitation and de-excitation rates, and $A_{21}$ is the spontaneous transition probability.
@@ -69,7 +68,8 @@ The presence of multiple detected multiplet members improves the match, resultin
 
 #### **4. Identification Index (IDI)**
 Finally, the **Identification Index (IDI)** is used to quantify the overall likelihood of each putative ID being the plausible identification. The **IDI** is calculated as the sum of the scores from the three components:  
-$$ \text{IDI} = W + F + M. $$
+
+$$ IDI = W + F + M. $$
 
 Lower **IDI** values correspond to better matches, meaning the candidate line satisfies the criteria more closely. PyEMILI provides users with multiple potential IDs for each line, ranked by their **IDI** scores, allowing users to select the most plausible identification based on the context of analysis.
 
@@ -112,28 +112,28 @@ After running `pyemili.Lines.Line_list.identify()`, two files end with **'.dat'*
 
 >`Number 98 	Observed line:	3918.93000 	 1.07E-03	SNR:226.4	FWHM:18.7`
 
-The '.out' file is composed of individual blocks, with each block corresponding to the line identification of a single obserevd line. Each block begins with header information as shown above, which means this observed line is the 98th line of *Input Line List*. The observed wavelength is 3918.93 angstroms. Flux is 1.07e-03 relative to the $H_\beta=1$.
+The '.out' file is composed of individual blocks, with each block corresponding to the line identification of a single obserevd line. Each block begins with header information as shown above, which means this observed line is the 98th line of *Input Line List*. The observed wavelength is 3918.93 angstroms. Flux is 1.07e-03 relative to the $\mathrm{H}_\beta=1$.
 
 ![out file](./pic/out.png)
 
->**Column (1)** Wavelength of a candidate ID corrected using the velocity-structure parameter.  The '`+`' notation in front of the wavelength means that the velocity difference in Column (9) is less than 1$\sigma$.  
->**Column (2)** Laboratory wavelength of a candidate ID.  An asterisk '**$\ast$**' in front of the laboratory wavelength means it is a weighted-average wavelength if all the fine-structure transitions (including this candidate ID) within a multiplet have very close wavelengths, e.g., with differences smaller than the instrumental resolution.  No asterisk in this example, because it is not applicable to this case.
->**Columns (3)** The emitting ion.
->**Columns (4)** The lower and upper spectral terms.
->**Columns (5)** The predicted template flux relative to H$\beta$. The value with a tilde '**$\sim$**' in front is calculated using the effective recombination coefficient, while that with an asterisk '**$\ast$**' in front indicates the transition has no transition probability in our atomic transition database and its predicted template flux is estimated using a default transition probability (see paper section 2.4.2).
+>**Column (1)** Wavelength of a candidate ID corrected using the velocity-structure parameter.  The '`+`' notation in front of the wavelength means that the velocity difference in Column (9) is less than $1\sigma$.  
+>**Column (2)** Laboratory wavelength of a candidate ID.  An asterisk '**$\ast$**' in front of the laboratory wavelength means it is a weighted-average wavelength if all the fine-structure transitions (including this candidate ID) within a multiplet have very close wavelengths, e.g., with differences smaller than the instrumental resolution.  No asterisk in this example, because it is not applicable to this case.  
+>**Columns (3)** The emitting ion.  
+>**Columns (4)** The lower and upper spectral terms.  
+>**Columns (5)** The predicted template flux relative to $\mathrm{H}_\beta$. The value with a tilde '**$\sim$**' in front is calculated using the effective recombination coefficient, while that with an asterisk '**$\ast$**' in front indicates the transition has no transition probability in our atomic transition database and its predicted template flux is estimated using a default transition probability (see paper section 2.4.2).  
 >**Columns (6)** The number of associated multiplet members that are expected to be observed, versus the number of transitions actually detected. For example, `5/1` means 5 multiplet lines should be possibly observed in the input line list, but only 1 multiplet line has been detected by the code.  
->**columns (7)**, The identification index (IDI, IDI=W+F+M) of the candidate ID.
->**Column (8)** Ranking of the candidate ID assigned by PyEMILI.  The wedge symbol '**$\wedge$**' in front of a ranking means at least one detected multiplet member has been ranked as 'A' for the corresponding observed line.  In this case, the candidate ID is treated as one of the best identifications regardless of whether it has been ranked as 'A'.
->**Columns (9)** Velocity difference (in km s$^{-1}$) between the wavelengths in Column (1) and Column (2).
->**Columns (10) & (11)** The associated multiplet members (i.e. fine-structure components belonging to the same multiplet) detected from the *Input Line List*, and their velocity difference, respectively.  Up to three multiplet line are displayed in this output.  The wedge symbol '**$\wedge$**' in front of the wavelength means this multiplet member is assigned 'A' ranking in the corresponding observed line.
->**Columns (12)** Electron configurations of the lower and upper states.
->**Columns (13) & (14)** Statistical weights of the lower and upper states, respectively.
->**NOTE**: In each block for one observed line, the last candidate line has the **IDI=99 in column (7)**. It indicates that this line does not participate in the ranking. This line is the predicted strongest line within a wavelength difference range of 5-10$\sigma$. It's just shown here to remind you another possibility if the input wavelength uncertainty is too low, or the possible line blending.
+>**Columns (7)** The identification index (IDI, IDI=W+F+M) of the candidate ID.  
+>**Column (8)** Ranking of the candidate ID assigned by PyEMILI.  The wedge symbol '**$\wedge$**' in front of a ranking means at least one detected multiplet member has been ranked as 'A' for the corresponding observed line.  In this case, the candidate ID is treated as one of the best identifications regardless of whether it has been ranked as 'A'.  
+>**Columns (9)** Velocity difference (in km/s) between the wavelengths in Column (1) and Column (2).  
+>**Columns (10) & (11)** The associated multiplet members (i.e. fine-structure components belonging to the same multiplet) detected from the *Input Line List*, and their velocity difference, respectively.  Up to three multiplet line are displayed in this output.  The wedge symbol '**$\wedge$**' in front of the wavelength means this multiplet member is assigned 'A' ranking in the corresponding observed line.  
+>**Columns (12)** Electron configurations of the lower and upper states.  
+>**Columns (13) & (14)** Statistical weights of the lower and upper states, respectively.  
+>**NOTE**: In each block for one observed line, the last candidate line has the **IDI=99 in column (7)**. It indicates that this line does not participate in the ranking. This line is the predicted strongest line within a wavelength difference range of 5-10 $\sigma$. It's just shown here to remind you another possibility if the input wavelength uncertainty is too low, or the possible line blending.
 
 Another file with '.dat' is the output of the line list with all the A ranking IDs.
 
 ![dat file](./pic/dat.png)
 
 >**First column** is the observed wavelength.  
->**Second column** is the line flux relative to $H_\beta$.  
+>**Second column** is the line flux relative to $\mathrm{H}_\beta$.  
 >**On the right side of the vertical bar** are candidates with A ranking, or candidates whose multiplet member is ranked as A in other observed line.
