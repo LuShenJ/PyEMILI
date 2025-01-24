@@ -38,7 +38,7 @@ Step 1: Download the code file from Releases
 
 Step 2: Compile with pip
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-In the root directory where contain the setup.py file, run:
+In the root directory which contains the setup.py file, run:
 
 .. code-block:: bash
 
@@ -59,7 +59,7 @@ Detailed usage instructions and examples can be found in the `Manual <https://gi
 
 Basic Example
 ~~~~~~~~~~~~~
-In general, you need a text file containing **at least the wavelengths and fluxes of the unidentified lines**. If you need to use automatic line search function in PyEMILI, and generate a line list to be identified, refer to `Line_finding <https://github.com/LuShenJ/PyEMILI/blob/main/manual/Line_finding.md>`_.
+In general, you need a text file containing **at least the wavelengths and fluxes of the unidentified lines**. If you need to use the automatic line search function in PyEMILI, and generate a line list to be identified, refer to `Line_finding <https://github.com/LuShenJ/PyEMILI/blob/main/manual/Line_finding.md>`_.
 
 .. code-block:: python
 
@@ -79,7 +79,7 @@ In general, you need a text file containing **at least the wavelengths and fluxe
 
 Output Files
 ~~~~~~~~~~~~
-After running `pyemili.Lines.Line_list.identify()`, two files end with **'.dat'** and **'.out'** will be generate in the directory. The '.out' file contains complete candidate IDs of each input observed line, and '.dat' file contains primarily the A ranking candidate IDs for each line. More information can be found `here <https://github.com/LuShenJ/PyEMILI/blob/main/manual/Intro.md>`_.
+After running `pyemili.Lines.Line_list.identify()`, two files ending with **'.dat'** and **'.out'** will be generated in the directory. The '.out' file contains complete candidate IDs of each input observed line, and '.dat' file contains primarily the A ranking candidate IDs for each line. More information can be found `here <https://github.com/LuShenJ/PyEMILI/blob/main/manual/Intro.md>`_.
 
 Troubleshooting
 ---------------
