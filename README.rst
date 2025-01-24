@@ -33,13 +33,10 @@ Installation
 
 You can install PyEMILI by downloading the source code:
 
-Step 1: Clone from GitHub
+Step 1: Download the code file from release
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. code-block:: bash
 
-   git clone https://github.com/LuShenJ/PyEMILI.git
-
-Setp 2: Compile with pip
+Step 2: Compile with pip
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 In the root directory where contain the setup.py file, run:
 
