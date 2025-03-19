@@ -46,7 +46,7 @@ The **predicted template flux** for each line, whether **$I_{\rm R}$** or **$I_{
 - **Forbidden transitions** are assumed to arise from collisional excitation.
 - For **intercombination transitions** (or semi-forbidden transitions), the predicted template flux is a sum of recombination and collisional excitation contributions, with the collisional excitation component diluted by a factor of 100. This factor is empirically derived from the comparisons of numerous PNe and H II regions samples.
 
-The **predicted flux** score is based on the expected intensity of the spectral line. For each putative ID within a $5\sigma$ wavelength difference (surviving the wavelength agreement assessment), the predicted flux ($I$) is calculated as mentioned above. The highest predicted flux of a unidentified line is denoted as $I_{\text{max}}$. Each ID is scored based on how its predicted flux compares to $I_{\text{max}}$, following these criteria:
+The **predicted flux** score is based on the expected intensity of the spectral line. For each putative ID within a $5\sigma$ wavelength difference (surviving the wavelength agreement assessment), the predicted flux ($I$) is calculated as mentioned above. The highest predicted flux of an unidentified line is denoted as $I_{\text{max}}$. Each ID is scored based on how its predicted flux compares to $I_{\text{max}}$, following these criteria:
 
 - **F = 0** if $I \geq 0.1I_{\text{max}}$
 - **F = 1** if $I \geq 0.01I_{\text{max}}$
@@ -90,7 +90,7 @@ All ions are separated into 5 bins based on the ionization energies to produce s
 |---------|-------------|-------------|------------|--------|
 |0-13.6 eV| 13.6-24.7 eV| 24.7-55 eV| 55-100 eV| >100 eV|
 
-Each bin has the parameters of ionization and velocity structure models. The ionization structure model refers to the proportion of ions in a given ionization bin to the total elemental abundance of that ion. **The modified abundances of ions are derived through the total abundances of the elements multiplied by the values of ionization structure model for the bins in which the ions reside**. Baldwin et. al. (2000) have shown that in the rest frame of a nebula, the magnitude of the velocity difference between the observed and laboratory wavelengths is correlated with the parent ions' ionization energies. Thus, the velocity structure model aims to correct this correlation for different ions with different ionization energies.
+Each bin has the parameters of ionization and velocity structure models. The ionization structure model refers to the proportion of ions in a given ionization bin to the total elemental abundance of that ion. **The modified abundances of ions are derived through the total abundances of the elements multiplied by the values of the ionization structure model for the bins in which the ions reside**. Baldwin et. al. (2000) have shown that in the rest frame of a nebula, the magnitude of the velocity difference between the observed and laboratory wavelengths is correlated with the parent ions' ionization energies. Thus, the velocity structure model aims to correct this correlation for different ions with different ionization energies.
 
 For example, the minimum energy to produce $\mathrm{O^{2+}}$ is 35.11 eV, which also means the ionization energy of the $\mathrm{O^{1+}}$. Thus, $\mathrm{O^{2+}}$ will be classified into the bin 3. And all the [O III] collisionally excited lines and O II recombination lines, whose parent ion is $\mathrm{O^{2+}}$, will use the corresponding values of ionization and velocity structure models for bin 3 to calculate their scores.
 
@@ -108,11 +108,11 @@ Initial velocity structure value for each bin (in km/s):
 
 ### Output files
 
-After running `pyemili.Lines.Line_list.identify()`, two files end with **'.dat'** and **'.out'** will be generate in the directory. The '.out' file contains complete candidate IDs of each input observed line. As an example of the results, The following presents a demonstrative output of PyEMILI's identification of an emission line observed:
+After running `pyemili.Lines.Line_list.identify()`, two files ending with **'.dat'** and **'.out'** will be generated in the directory. The '.out' file contains complete candidate IDs of each input observed line. As an example of the results, The following presents a demonstrative output of PyEMILI's identification of an emission line observed:
 
 >`Number 98 	Observed line:	3918.93000 	 1.07E-03	SNR:226.4	FWHM:18.7`
 
-The '.out' file is composed of individual blocks, with each block corresponding to the line identification of a single obserevd line. Each block begins with header information as shown above, which means this observed line is the 98th line of *Input Line List*. The observed wavelength is 3918.93 angstroms. Flux is 1.07e-03 relative to the $\mathrm{H}_\beta=1$.
+The '.out' file is composed of individual blocks, with each block corresponding to the line identification of a single observed line. Each block begins with header information as shown above, which means this observed line is the 98th line of the *Input Line List*. The observed wavelength is 3918.93 angstroms. Flux is 1.07e-03 relative to the $\mathrm{H}_\beta=1$.
 
 ![out file](./pic/out.png)
 
@@ -125,10 +125,10 @@ The '.out' file is composed of individual blocks, with each block corresponding 
 >**Columns (7)** The identification index (IDI, IDI=W+F+M) of the candidate ID.  
 >**Column (8)** Ranking of the candidate ID assigned by PyEMILI.  The wedge symbol '**$\wedge$**' in front of a ranking means at least one detected multiplet member has been ranked as 'A' for the corresponding observed line.  In this case, the candidate ID is treated as one of the best identifications regardless of whether it has been ranked as 'A'.  
 >**Columns (9)** Velocity difference (in km/s) between the wavelengths in Column (1) and Column (2).  
->**Columns (10) & (11)** The associated multiplet members (i.e. fine-structure components belonging to the same multiplet) detected from the *Input Line List*, and their velocity difference, respectively.  Up to three multiplet line are displayed in this output.  The wedge symbol '**$\wedge$**' in front of the wavelength means this multiplet member is assigned 'A' ranking in the corresponding observed line.  
+>**Columns (10) & (11)** The associated multiplet members (i.e. fine-structure components belonging to the same multiplet) detected from the *Input Line List*, and their velocity difference, respectively.  Up to three multiplet lines are displayed in this output.  The wedge symbol '**$\wedge$**' in front of the wavelength means this multiplet member is assigned an 'A' ranking in the corresponding observed line.  
 >**Columns (12)** Electron configurations of the lower and upper states.  
 >**Columns (13) & (14)** Statistical weights of the lower and upper states, respectively.  
->**NOTE**: In each block for one observed line, the last candidate line has the **IDI=99 in column (7)**. It indicates that this line does not participate in the ranking. This line is the predicted strongest line within a wavelength difference range of 5-10 $\sigma$. It's just shown here to remind you another possibility if the input wavelength uncertainty is too low, or the possible line blending.
+>**NOTE**: In each block for one observed line, the last candidate line has the **IDI=99 in column (7)**. It indicates that this line does not participate in the ranking. This line is the predicted strongest line within a wavelength difference range of 5-10 $\sigma$. It's just shown here to remind you of another possibility if the input wavelength uncertainty is too low, or the possible line blending.
 
 Another file with '.dat' is the output of the line list with all the A ranking IDs.
 
@@ -136,4 +136,4 @@ Another file with '.dat' is the output of the line list with all the A ranking I
 
 >**First column** is the observed wavelength.  
 >**Second column** is the line flux relative to $\mathrm{H}_\beta$.  
->**On the right side of the vertical bar** are candidates with A ranking, or candidates whose multiplet member is ranked as A in other observed line.
+>**On the right side of the vertical bar** are candidates with A ranking, or candidates whose multiplet member is ranked as A in other observed lines.
