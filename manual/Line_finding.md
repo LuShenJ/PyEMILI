@@ -8,7 +8,7 @@ Key features of `Spec` module include:
 - **Advanced Gaussian Fitting**: PyEMILI supports both single and multi-Gaussian fitting, making it ideal for handling blended lines and complex spectral profiles.
 - **Interactive Matplotlib-Based Interface**: Users can inspect spectra, review detected lines, and interactively modify the results by adding or deleting lines.
 
-`pyemili.Spec` has an integrated function called `Spec_line_finding`, can be easily used to automatically read the spectrum, fit the continuum, correct the radial velocity (optional), and find the spectral lines. Let's start with a simple example:
+`pyemili.Spec` has an integrated function called `Spec_line_finding`, which can be easily used to automatically read the spectrum, fit the continuum, correct the radial velocity (optional), and find the spectral lines. Let's start with a simple example:
 
 ### example
 
@@ -17,7 +17,7 @@ from pyemili.Spec import Spec_line_finding
 Spec_line_finding('J0608_03may2019MagE.fits')
 ```
 
-The input file could be a FITS file ends with `.fits`, `.fit` or `.fits.gz`, and also could be a text file that the first column is wavelength, and second is flux. if successful (if not, you can read the spectrum yourself and generate a text file), in the terminal will print:
+The input file could be a FITS file that ends with `.fits`, `.fit` or `.fits.gz`, and also could be a text file that the first column is wavelength, and the second is flux. if successful (if not, you can read the spectrum yourself and generate a text file), the terminal will print:
 
 ```
 Try Finding Spectrum From FITS File.
@@ -35,7 +35,7 @@ The black line is the spectrum, red line is the fitted continuum based on the pa
 Enter 'percentile':
 ```
 
-we reset the `percentile` parameter firstly. For the emission-line spectrum, this parameter is suggested to set as 25. We change this parameter to 75 and press `Enter`.
+we reset the `percentile` parameter first. For the emission-line spectrum, this parameter is suggested to be set as 25. We change this parameter to 75 and press `Enter`.
 
 ```
 Enter 'length':
@@ -46,16 +46,14 @@ Now we reset the 'length' parameter, default length is 100 in the unit of x axis
 Press 'y' to finish or 'n' to reset the parameters:
 ```
  
-At this time, the graph has been redrawn, continuum is refitted with input parameters. Let's see in detail what the different between these two sets of parameters.
+At this time, the graph has been redrawn, continuum is refitted with input parameters. Let's see in detail what the difference is between these two sets of parameters.
 
 ![continumm compare](./pic/continuum_cp2.png)
 ![continumm compare](./pic/continuum_cp1.png)
 
-Here is a revised version for clarity:
-
 The top panel uses the default parameters `percentile=25` and `length=100`, while the bottom panel uses `percentile=75` and `length=50`. The fitting principle is as follows: within a specified moving window length, a chosen percentile of the flux values in that window is calculated to represent the continuum value at the midpoint of the window. Typically, in an emission-line spectrum, a `percentile` around `25` is recommended, whereas in an absorption-line-dominated spectrum, a `percentile` around `75` is more suitable. The `length` of the moving window is based on the typical full width at half-maximum (FWHM) of the spectral lines, with a wider window used for lines with larger FWHMs.
 
-Once you finish fitting the continuum, press `y` and then `Enter`. The code then starts finding the spectral lines based on input SNR threshold. Default is 7. Another graph will show with the lines have been found.
+Once you finish fitting the continuum, press `y` and then `Enter`. The code then starts finding the spectral lines based on the input SNR threshold. The default is 7. Another graph will show with the lines have been found.
 
 ![find lines](./pic/find_lines.png)
 
@@ -65,7 +63,7 @@ These lines colored with red and blue are lines found by the code. The colors ar
 
 We could see that the 4933.440 might not be a real line and the lines around 5200 angstroms might be a line. We can put the cursor in the middle of the 4933.440 and press `d` to delete this line. Put the cursor in the left boundary of the line around 5200 angstroms and press `x` to determine the left boundary of this line, and then put the cursor in the right boundary of the line and press `x` to determine its right boundary.
 
-After determining both boundaries of the line, code will fit the line profile by a Gaussian function. If successful, in the terminal you can see:
+After determining both boundaries of the line, the code will fit the line profile by a Gaussian function. If successful, in the terminal you can see:
 
 ```
 Line 4933.440 has been deleted.
@@ -125,10 +123,10 @@ And a file named the same as the input file, ends with `.txt` will be generated,
 >>The radial velocity of the spectrum in the unit of km/s. Default is 0.
 
 >**length** : float, optional
->>The length of the moving window used to compute the continuum. A higher spectral resolution generally needs a longer moving window. Default is 100 angstroms. This Parameter is best set to 3-7 times the maximum full width of line.
+>>The length of the moving window used to compute the continuum. A higher spectral resolution generally needs a longer moving window. Default is 100 angstroms. This Parameter is best set to 3-7 times the maximum full width of the line.
 
 >**percentile** : float, optional
->>The percentile to compute the values of continuum in a moving window. Default is 25 for pure emission line spectrum. 75 is suggested for absorption line spectrum. This parameter must be between 0 and 100.
+>>The percentile to compute the values of continuum in a moving window. Default is 25 for the pure emission line spectrum. 75 is suggested for the absorption line spectrum. This parameter must be between 0 and 100.
 
 >**check_continuum** : bool, optional
 >>Whether to check the computed continuum in a plot. Default is True. If True, you will see a plot of the spectrum with the computed continuum and a command in the terminal. Follow what it says in the terminal, you can change the testing parameters.
@@ -146,12 +144,12 @@ And a file named the same as the input file, ends with `.txt` will be generated,
 >>Required prominence of peaks. See details in `scipy.signal.peak_prominences`. The parameter input here is the multiple of the continuum uncertainty. e.g., `prominence = 2` means 2 multiplied by the continuum uncertainties. Default is 6.  
 
 >**check_lines** : bool, optional
->>If True, an interactive plot will be presented with the spectral lines automatically found. These lines will be colored by blue or red in order to distinguish the boundaries of lines. Default is True.  
+>>If True, an interactive plot will be presented, and the spectral lines will automatically be found. These lines will be colored blue or red in order to distinguish the boundaries of lines. Default is True.  
 
 >**append** : bool, optional
 >>If True, instead of overwriting the saved line list file, the line list will be added starting from the last line of the line list file.  
 
 NOTE:
 
-* Place the cursor on the boundary of the line and press the keyboard 'X' to determine the boundaries of the line you want to add. After pressing 'X' twice, the fluxes in covered wavelengths will be fitted by Gaussian function. And the details of this line will be add in the output line list if the fit is successful.
-* Place the cursor within the wavelength of line you want to delete and press the keyboard 'D' to delete this line. Lines found automatically can also be deleted.
+* Place the cursor on the boundary of the line and press the keyboard 'X' to determine the boundaries of the line you want to add. After pressing 'X' twice, the fluxes in covered wavelengths will be fitted by the Gaussian function. And the details of this line will be added to the output line list if the fit is successful.
+* Place the cursor within the wavelength of the line you want to delete and press the keyboard 'D' to delete this line. Lines found automatically can also be deleted.
