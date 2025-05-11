@@ -1,7 +1,7 @@
 PyEMILI
 =======
 
-**PyEMILI** is a Python-based tool primarily designed to assist in the automated line identification of spectra, especially for emission-line objects such as planetary nebulae (PNe), H II regions, and Herbig-Haro (HH) objects, etc. Compared to manual line identifications in the literature, PyEMILI achieves approximately 90% agreement. The current version of PyEMILI offers the following features.
+**PyEMILI** `(Tu, Fang et al. 2025) <https://iopscience.iop.org/article/10.3847/1538-4365/adae00>`_ is a Python-based tool primarily designed to assist in the automated line identification of spectra, especially for emission-line objects such as planetary nebulae (PNe), H II regions, and Herbig-Haro (HH) objects, etc. Compared to manual line identifications in the literature, PyEMILI achieves approximately 90% agreement. The current version of PyEMILI offers the following features.
 
 Key Features
 ------------
