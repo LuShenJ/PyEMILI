@@ -1,0 +1,43 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: PyEMILI
+message: >-
+  Automated Emission and Absorption Line Identification in
+  Astronomical Spectra
+type: software
+authors:
+  - given-names: Zhijun
+    family-names: Tu
+    affiliation: >-
+      National Astronomical Observatories, Chinese Academy
+      of Sciences
+    email: zjtu@bao.ac.cn
+    orcid: 'https://orcid.org/0009-0000-7976-7383'
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.14054097
+    description: PyEMILI Zenodo repository
+  - type: url
+    value: 'https://github.com/LuShenJ/PyEMILI'
+    description: PyEMILI github repository
+  - type: doi
+    value: 10.3847/1538-4365/adae00
+    description: Desription of PyEMILI
+repository-code: 'https://github.com/LuShenJ/PyEMILI'
+repository: 'https://zenodo.org/records/14054097'
+abstract: >-
+  PyEMILI is a Python-based tool primarily designed to
+  assist in the automated line identification of spectra,
+  especially for emission-line objects such as planetary
+  nebulae (PNe), H II regions, and Herbig-Haro (HH) objects,
+  etc. Compared to manual line identifications in the
+  literature, PyEMILI achieves approximately 90% agreement.
+keywords:
+  - spectral line identification
+  - emission line objects
+  - atomic transition database
+license: MIT
+version: 1.0.1
+date-released: '2024-11-08'
