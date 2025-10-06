@@ -19,7 +19,7 @@ authors:
       of Sciences
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.14054097
+    value: 10.5281/zenodo.14054096
     description: Zenodo DOI of the PyEMILI release
   - type: doi
     value: 10.3847/1538-4365/adae00
@@ -28,7 +28,7 @@ identifiers:
     value: 'https://github.com/LuShenJ/PyEMILI'
     description: PyEMILI GitHub repository
 repository-code: 'https://github.com/LuShenJ/PyEMILI'
-repository: 'https://zenodo.org/records/14054097'
+repository: 'https://zenodo.org/records/14054096'
 abstract: >-
   PyEMILI is a Python-based tool primarily designed to
   assist in the automated line identification of spectra,
@@ -57,7 +57,7 @@ preferred-citation:
     - family-names: Liu
       given-names: Jifeng
   version: "1.0.1"
-  doi: 10.5281/zenodo.14054097
-  url: "https://zenodo.org/records/14054097"
+  doi: 10.5281/zenodo.14054096
+  url: "https://zenodo.org/records/14054096"
   year: 2024
 
