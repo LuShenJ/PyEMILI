@@ -19,6 +19,9 @@ authors:
       of Sciences
 identifiers:
   - type: doi
+    value: 2025ascl.soft09005T
+    description: ASCL DOI of the PyEMILI release
+  - type: doi
     value: 10.5281/zenodo.14054096
     description: Zenodo DOI of the PyEMILI release
   - type: doi
@@ -57,7 +60,7 @@ preferred-citation:
     - family-names: Liu
       given-names: Jifeng
   version: "1.0.1"
-  doi: 10.5281/zenodo.14054096
-  url: "https://zenodo.org/records/14054096"
-  year: 2024
+  doi: 2025ascl.soft09005T
+  url: "https://ascl.net/2509.005"
+  year: 2025
 
