@@ -1,6 +1,3 @@
-# This CITATION.cff file was generated with cffinit.
-# Visit https://bit.ly/cffinit to generate yours today!
-
 cff-version: 1.2.0
 title: PyEMILI
 message: >-
@@ -15,16 +12,21 @@ authors:
       of Sciences
     email: zjtu@bao.ac.cn
     orcid: 'https://orcid.org/0009-0000-7976-7383'
+  - given-names: Xiaoan
+    family-names: Fang
+    affiliation: >-
+      National Astronomical Observatories, Chinese Academy
+      of Sciences
 identifiers:
   - type: doi
     value: 10.5281/zenodo.14054097
-    description: PyEMILI Zenodo repository
-  - type: url
-    value: 'https://github.com/LuShenJ/PyEMILI'
-    description: PyEMILI github repository
+    description: Zenodo DOI of the PyEMILI release
   - type: doi
     value: 10.3847/1538-4365/adae00
-    description: Desription of PyEMILI
+    description: The PyEMILI paper in ApJS
+  - type: url
+    value: 'https://github.com/LuShenJ/PyEMILI'
+    description: PyEMILI GitHub repository
 repository-code: 'https://github.com/LuShenJ/PyEMILI'
 repository: 'https://zenodo.org/records/14054097'
 abstract: >-
@@ -41,3 +43,21 @@ keywords:
 license: MIT
 version: 1.0.1
 date-released: '2024-11-08'
+
+preferred-citation:
+  type: software
+  title: "PyEMILI"
+  authors:
+    - family-names: Tu
+      given-names: Zhijun
+    - family-names: Fang
+      given-names: Xuan
+    - family-names: Williams
+      given-names: Robert
+    - family-names: Liu
+      given-names: Jifeng
+  version: "1.0.1"
+  doi: 10.5281/zenodo.14054097
+  url: "https://zenodo.org/records/14054097"
+  year: 2024
+
