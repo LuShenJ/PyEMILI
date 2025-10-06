@@ -18,9 +18,9 @@ authors:
       National Astronomical Observatories, Chinese Academy
       of Sciences
 identifiers:
-  - type: doi
-    value: 2025ascl.soft09005T
-    description: ASCL DOI of the PyEMILI release
+  - type: eid
+    value: ascl:2509.005
+    description: ASCL eid of the PyEMILI release
   - type: doi
     value: 10.5281/zenodo.14054096
     description: Zenodo DOI of the PyEMILI release
@@ -59,8 +59,13 @@ preferred-citation:
       given-names: Robert
     - family-names: Liu
       given-names: Jifeng
-  version: "1.0.1"
-  doi: 2025ascl.soft09005T
-  url: "https://ascl.net/2509.005"
   year: 2025
+  version: "1.0.1"
+  howpublished: "Astrophysics Source Code Library, record ascl:2509.005"
+  eid: "ascl:2509.005"
+  pages: "ascl:2509.005"
+  archivePrefix: "ascl"
+  eprint: "2509.005"
+  adsurl: "https://ui.adsabs.harvard.edu/abs/2025ascl.soft09005T"
+  url: "https://ascl.net/2509.005"
 
