@@ -173,6 +173,9 @@ class Line_list(object):
             If True, code will extract a sub line list with relatively robust identifications made 
             in the first iteration to calculate the new `icf` and `v_cor` models and re-identify each 
             line. Default is True.
+        erc_list : bool
+            If True, an line list ends with 'erc.dat' will be generated, which is used for recombination 
+            lines fitting, i.e., pyemili.recomb.
         match_list : str, optional
             The filename of the input match line table. This is a obsolete argument. It is in conflict
             with `iteration` parameter and may be deleted in future version. See (Sharpee et al. 2003) 
@@ -289,30 +292,6 @@ class Line_list(object):
                                 'eff_Te.npy'),allow_pickle=True).item()
             self.coeNe = np.load(os.path.join(self.rootdir,'pyemili','eff_reccoe',\
                                 'eff_Ne.npy'),allow_pickle=True).item()
-            # # Initialize the ranges of Te and Ne of each specie
-            # self.HI_Ne = 10**np.linspace(2,14,num=13)
-            # self.HI_Te = 1e2*np.array([5,10,30,50,75,100,125,150,200,300])
-
-            # self.HeI_Ne = 10**np.array([2,2.5,3,3.5,4,4.5,5,5.5,6])
-            # self.HeI_Te = 10**(np.arange(26,46)*0.1)
-
-            # self.HeII_Ne = 10**np.linspace(2,14,num=13)
-            # self.HeII_Te = 1e2*np.array([5,10,30,50,75,100,125,150,200,300,500,1000])
-
-            # self.CII_Ne = np.array([1e4])
-            # # self.CII_Te = 10**np.linspace(2,4.6,num=27)
-            # self.CII_Te = np.array([500,750,1000,1250,1500,2000,2500,3500,5000,7500,\
-            #                10000,12500,15000,20000])
-
-            # self.OII_Ne = 10**np.linspace(2,5,num=16)
-            # self.OII_Te = 10**np.linspace(2,4.4,num=25)
-
-            # self.NII_Te = np.array([126,158,200,251,316,398,501,631,794,1000,1260,1580,\
-            #                 2000,2510,3160,3980,5010,6310,7940,10000,12600,15800,20000])
-            # self.NII_Ne = 10**np.linspace(2,6,num=41)
-
-            # self.NeII_Ne = 10**np.array([4,6])
-            # self.NeII_Te = 1e2*np.array([10,20,30,50,75,100,125,150,200])
             
             # Load the effective coefficients
             effcoes = nb.typed.List()
@@ -324,7 +303,6 @@ class Line_list(object):
                      allow_pickle=True).astype(np.float64)")
 
                 exec(f"self.{i}_ix = np.array([np.argmin(abs(self.coeTe['{i}']-self.Te)),np.argmin(abs(self.coeNe['{i}']-self.Ne))])")
-                # exec(f"self.{i}_ix = np.array([np.argmin(abs(self.{i}_Te-self.Te)),np.argmin(abs(self.{i}_Ne-self.Ne))])")
 
                 exec(f"effcoes.append(self.{i}coe)")
 
@@ -396,9 +374,6 @@ class Line_list(object):
                             f'Input Abundance Table: {abun_type}\n'
                     if self.waverr_type == 0:
                         out_sum += f'Input Wavelength uncertainty (1 sigma): {self.waverr_init} km/s\n'
-                    
-                    # if self.waverr_pro != 0:
-                    #     out_sum += f'Proper Wavelength uncertainty (1 sigma): {self.waverr_pro*2:.3f} km/s\n'
 
                     f1.write(out_sum)
                     f1.write('\n')
@@ -423,10 +398,6 @@ class Line_list(object):
             self.H_abs = self.abs_flux_formu(self.abun[0,0],8.420e+06,82259.11,8,4861.325)
 
         if typeh == 1:
-            # voidin = np.zeros((1,9))
-            # RR_H = np.array([[8.318e-11 ,0.7472 ,2.965 ,700100.0 ,0.0 ,0.0]])
-            # self.H_beta = self.em_flux_formu(self.abun[0,0],self.abun[0,1],1,\
-            #     102823.9,4,8,8.420e+06,RR_H,voidin,voidin,4861.325,np.array([1]),0.0141341,1)[0]
             self.H_beta_eff = self.abun[0,1]*self.HIcoe[21,self.HI_ix[0],self.HI_ix[1]]/6.626e-27/2.99e18*1e14
 
 
@@ -642,10 +613,7 @@ class Line_list(object):
         Match the identified lines to the atomic transition database and calculate more accurate 
         models of `icf` and `v_cor` based on these identified lines. This function is used when 
         the input `match_list` exists or when `iteration` is set to True.
-        """
-
-        # File contains the lines that needs to be matched
-        # match = np.loadtxt(os.path.join(self.rootdir,'pyemili','Line_dataset','match_lines.dat')) 
+        """ 
 
         # If `match_list` exists
         if match_table is None:
@@ -671,10 +639,6 @@ class Line_list(object):
                  else 2 if x.ion[-1]==']' and x.ele[0]=='[' \
                  else 0,axis=1).rename('tt')
 
-        # ion_prog = pd.concat([ion,tt,lines.flux],axis=1).apply(lambda x:\
-        #     int(x.ion) if x.tt>0 or x.flux<0 else int(x.ion+1),axis=1)
-
-
         # Match the H beta if it exists
         H_beta = lines[(ele==0)&(ion==0)&(lines.effcoe==22)] #
         # Determine the H beta flux and normalized
@@ -693,6 +657,7 @@ class Line_list(object):
         elif min(self.wav) > 4861.325 or max(self.wav) < 4861.325:
             print('WARNING: H beta is not in the wavelength range of input line list.')
             print('WARNING: Consider input fluxes are already normalized to I(H_beta)=1.')
+
         # If do not match H beta successfully, consider the nearest line as H beta
         else:
             H_betaflux = self.obs_flux[np.argmin(abs(self.wav-4861.325))]
@@ -708,7 +673,6 @@ class Line_list(object):
             lambda x: self.ele_binindex[x.ele,x.ion+1] if x.tt!=2 \
                  else self.ele_binindex[x.ele,x.ion],axis=1)
 
-        
         # Modify the dillution factor of collisional excitation term
         if len(lines[tt==2]) >= 5 and self.col_cor_m:
             self.col_cor = self.col_cor/np.median(lines[tt==2].pre_flux/lines[tt==2].flux)
@@ -725,10 +689,6 @@ class Line_list(object):
             # Check if there is any line in bin 1 and set icf
             if sum(tbin==0) >= 5:
                 ix1 = 0.01*np.median(lines.flux[tbin==0]/lines.pre_flux[tbin==0])
-                # flx1 = lines.flux[tbin==0].max()
-                # ix1 = 1.0E-1 if flx1 > 1.0E-2 \
-                #  else 1.0E-3 if flx1 < 1.0E-4 \
-                #  else 1.0E-2
                 if ix1 > max_val[0]:
                     ix1 = max_val[0]
 
@@ -759,7 +719,6 @@ class Line_list(object):
                     # Match all He I lines with effective recombination coefficients
                     HeI_obsflux = abs(lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].flux)
                     HeI_preflux = lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].pre_flux
-                    # ixr1 = np.median(HeI_obsflux/HeI_preflux)
                     # weighted by predicted fluxes
                     ixr1 = np.mean(HeI_obsflux/sum(HeI_preflux)*len(HeI_obsflux)*self.icf[2]/self.icf[1])
                 # If no He I lines found, set the ratio as 0
@@ -771,7 +730,6 @@ class Line_list(object):
                 HeI_preflux = lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].pre_flux
 
                 if len(HeI_obsflux) != 0:
-                    # ixr1 = np.median(HeI_obsflux/HeI_preflux)
                     ixr1 = np.mean(HeI_obsflux/sum(HeI_preflux)*len(HeI_obsflux)*self.icf[2]/self.icf[1])
                 else:
                     ixr1 = 0
@@ -788,7 +746,6 @@ class Line_list(object):
                 # Match all He II lines with effective recombination coefficients
                     HeII_obsflux = abs(lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].flux)
                     HeII_preflux = lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].pre_flux
-                    # ixr2 = np.median(HeII_obsflux/HeII_preflux/ixr1)
                     # weighted by predicted fluxes
                     ixr2 = np.mean(HeII_obsflux/sum(HeII_preflux)*len(HeII_preflux)*self.icf[3]/self.icf[2]/ixr1)
 
@@ -1148,10 +1105,6 @@ class Line_list(object):
         # Score each candidate line
         fluxscore = np.int64((np.log(maxf/self.flux)/np.log(10)))
 
-        # If the highest flux has a reference of effective recombination coefficient,
-        # increase its weight by subtracting 1
-        # if linesubframe[np.argmax(self.flux),15] != 0:
-        #     fluxscore[np.argmax(self.flux)] = fluxscore[np.argmax(self.flux)] - 1
         # For those lines with fluxes lower than 1e-5*max, all are set to 5 and ready \
         # to remove.
         fluxscore[fluxscore>=5] = 5
@@ -1409,9 +1362,6 @@ class Line_list(object):
                         spec = np.bincount(minframe[:,3].astype(int)).argmax()
                         pre_flux = pre_flux[minframe[:,3]==spec]
                         minframe = minframe[minframe[:,3]==spec]
-                    # elecheck = self.lineframe[:,1]!=self.lineframe[np.argmin(score),1]
-                    # ioncheck = self.lineframe[:,2]!=self.lineframe[np.argmin(score),2]
-                    # The scores of other ions
 
                     lab_wav = sum(minframe[:,5]*minframe[:,0])/sum(minframe[:,5])
                     pre_flux = sum(minframe[:,5]*pre_flux)/sum(minframe[:,5])     
@@ -1492,8 +1442,6 @@ class Line_list(object):
             for line,lineerr,num,obs_flux in zip(self.wav,self.waverr,range(len(self.wav)),self.obs_flux):
 
                 score = self.calcu_tatolscore(line,lineerr,obs_flux,num).astype(int)
-                # self.lineframe[:-1] = self.lineframe[:-1][self.flux[:-1].argsort()[::-1]]
-                # self.flux[:-1] = np.sort(self.flux[:-1])[::-1] 
 
                 # Sort each line and give the index values, remove duplicate lines
                 index = np.unique(np.stack((self.lineframe[:-1,0], \
@@ -1526,7 +1474,6 @@ class Line_list(object):
                 wav_nota1 = np.zeros(length,dtype='<U1')
                 flux_nota = np.zeros(length,dtype='<U1')
                 scores = score.copy()
-                # scores[scores<=2] = 0
                 uniquescore = np.unique(scores)
 
                 # Generate the strings
@@ -1569,7 +1516,6 @@ class Line_list(object):
                 Astr = ''.join(f'{i[4]}  {i[3]:.9s}, ' for i in Aout)
 
                 if self.erc_list:
-                    # 检查是否有既是A又有~的，并且没有评级为A但没有~的
                     # Check for IDs with both A ranking and '~', and there are no IDs with ranking A but not '~'
                     if sum(('~'==out[:,6])&('A'==out[:,11])) and sum(('A'==out[:,11])&(('~'!=out[:,6]))) == 0 and obs_flux>=1e-4:
                         subA = out[(out[:,6]=='~')&(out[:,11]=='A')]
