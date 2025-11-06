@@ -1,5 +1,5 @@
-version = '1.0.1'
-
+version = '1.1'
+time = '2025.11'
 from setuptools import setup, find_packages
 import os
 
