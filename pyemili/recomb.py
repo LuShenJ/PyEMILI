@@ -17,11 +17,13 @@ Design (per user requirements):
 Inputs
 ------
 A plain-text line list with columns:
-    obs_wav  obs_flux  obs_fluxerr  ele  ion  lab_wav
+    obs_wav  obs_flux  obs_fluxerr  ele  ion
+e.g. 
+    4085.11  6.70E-03   1.68E-03     O   II
 whitespace-separated; lines starting with '#' are ignored.
 
 You can simply obtain an input line list used for recombination line fitting by using pyemili.Lines.Line_list.identify(), 
-and set erc_list=True.
+and set erc_list=True. A file ends with 'erc.dat' will be generated, and can be strightly read by pyemili.recomb.Recom_Lines.
 
 Dependencies: emcee, corner
 
@@ -72,7 +74,7 @@ class FitResult:
     fixed_params : Dict[str, float]
         Parameters held fixed (and their fixed values).
     figure_paths : Dict[str, str]
-        File paths of saved figures (corner and optional data–model scatter).
+        File paths of saved figures (corner and optional data-model scatter).
     """
 
     flat_samples: np.ndarray
@@ -92,7 +94,7 @@ class Recom_Lines:
     ----------
     filename : str
         Path to the line list file. Must contain columns
-        [obs_wav, obs_flux, obs_fluxerr, ele, ion, lab_wav].
+        [obs_wav, obs_flux, obs_fluxerr, ele, ion].
     rootdir : Optional[str], default None
         Path to the directory containing pyemili/eff_reccoe. If None, assumed to be
         the parent directory of this file.
@@ -119,14 +121,27 @@ class Recom_Lines:
             rootdir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
         self.rootdir = rootdir
 
-        # Read full line list (do **not** subset here)
+
+        with open(filename) as f:
+            first_line = f.readline().strip()
+        ncols = len(first_line.split())
+
+        # set column names based on number of columns
+        if ncols == 5:
+            colnames = ["obs_wav", "obs_flux", "obs_fluxerr", "ele", "ion"]
+        elif ncols == 6:
+            colnames = ["obs_wav", "obs_flux", "obs_fluxerr", "ele", "ion", "lab_wav"]
+        else:
+            raise ValueError(f"Unexpected number of columns ({ncols}) in file: {filename}")
+
+        # load file
         df = pd.read_table(
             filename,
             sep=r"\s+",
-            names=["obs_wav", "obs_flux", "obs_fluxerr", "ele", "ion", "lab_wav"],
+            names=colnames,
             comment="#",
         )
-        df = df[df.obs_flux != df.obs_fluxerr]  # drop degenerate rows
+        # df = df[df.obs_flux != df.obs_fluxerr]  # drop degenerate rows
         df = df.sort_values("obs_flux").reset_index(drop=True)
         # normalize ion label like 'II]' -> 'II'
         df["ion"] = df["ion"].astype(str).str.replace(r"\]$", "", regex=True)
@@ -196,8 +211,8 @@ class Recom_Lines:
 
     def _build_reference_normalizer(self) -> None:
         """Prepare normalization to Hβ or to max-within-ion depending on setting."""
-        # Hβ emissivity table (original code used index 21 for Hβ in H I cube)
-        H_Te = np.log10(self.coeTe["HI"])  # H I grids use keys without space
+        # Hβ emissivity table
+        H_Te = np.log10(self.coeTe["HI"])  # H I grids
         H_Ne = np.log10(self.coeNe["HI"])
         H_cube = self.Coes["HI"]
         Hbeta_idx = 21  # the H_beta index in database
@@ -280,7 +295,6 @@ class Recom_Lines:
             ref = emiss.max()
             model = emiss / ref
         else:
-            # Hbeta = float(self.Hbeta_interp([Te_log, Ne_log]))
             Hbeta = float(self.Hbeta_interp([[Te_log_Hbeta, Ne_log_Hbeta]])[0])
             model = emiss / Hbeta
 
@@ -299,7 +313,7 @@ class Recom_Lines:
         if not (self.Ne_min <= Ne_log <= self.Ne_max):
             return -np.inf
 
-        # Abundance prior: within ±2 dex around A12_init (or a narrow window if desired)
+        # Abundance prior: within ±2 dex around A12_init
         if self.fit_abundance and self.use_abundance_in_model and self.spec != "H I":
             assert self.A12_init is not None
             if not (self.A12_init - 2.0 <= A12 <= self.A12_init + 2.0):
@@ -331,7 +345,7 @@ class Recom_Lines:
         ion: str,
         Te: Optional[float] = None,
         Ne: Optional[float] = None,
-        fit_abundance: bool = False,
+        fit_abundance: bool = True,
         A12: Optional[float] = None,
         eleabuns: Optional[np.ndarray | List[float]] = None,
         flux_threshold: float = 0.0,
@@ -359,7 +373,8 @@ class Recom_Lines:
         A12 : float or None
             Initial abundance for the prior center when fitting abundance.
         eleabuns : array-like or None
-            Default ionic abundances (X/H) for [H I, He I, N II, O II, C II] to set the abundance prior center.
+            Ionic abundances (X/H) for [H I, He I, N II, O II, C II] to set the abundance prior center.
+            Default values are [1.0, 8.5e-2, 6.8e-5, 4.9e-4, 2.7e-4].
         flux_threshold : float
             Drop observed features below this flux after any normalization.
         flux_normalize : float
@@ -381,9 +396,8 @@ class Recom_Lines:
         make_corner : bool
             Whether to save the corner plot.
         make_scatter : bool
-            Whether to save the data–model scatter plot at posterior medians.
+            Whether to save the data-model scatter plot at posterior medians.
 
-            Optional alias that overrides make_scatter if provided (for backward compatibility).
 
         Returns
         -------
@@ -436,6 +450,10 @@ class Recom_Lines:
 
         # Optionally switch wavelength reference to laboratory wavelengths
         if use_lab_wav:
+            if 'lab_wav' not in self.data.columns:
+                raise KeyError(
+                    f"The file does not contain a 'lab_wav' column, cannot switch to laboratory wavelength reference."
+                )
             self.data = self.data.copy()
             self.data['obs_wav'] = self.data['lab_wav'].astype(float)
         # 6) flags and fixed values
