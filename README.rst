@@ -10,9 +10,9 @@ Key Features
 - **Automated Absorption Line Identification**: Identify absorption lines in stellar spectra.
 - **Automatic 1D Spectrum Processing**:
   
-  - **Continuum Fitting**: Automatically fits the continuum of the 1D spectrum.
-  - **Line Detection**: Finds lines in the spectrum. An interactive interface is available for manually reviewing, adding, or revising spectral lines.
-  
+  - **Continuum Fitting**: Automatically fit the continuum of the 1D spectrum.
+  - **Line Detection**: Find lines in the spectrum. An interactive interface is available for manually reviewing, adding, or revising spectral lines.
+- **Recombination Lines Fitting**: Fit the electron temperature, electron density, and ionic abundance using a set of recombination lines.
 .. note::
    PyEMILI uses the `Atomic Line List v3.00b4 <https://www.pa.uky.edu/~peter/newpage/index.html>`_ developed by Peter A. M. Van Hoof, covering wavelengths from **1000–20000 Å**. **Molecular transitions are not included in the current version**.
 
