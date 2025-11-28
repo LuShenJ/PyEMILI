@@ -141,7 +141,8 @@ class Recom_Lines:
             names=colnames,
             comment="#",
         )
-        # df = df[df.obs_flux != df.obs_fluxerr]  # drop degenerate rows
+        if "lab_wav" not in df.columns:
+            df["lab_wav"] = df["obs_wav"]
         df = df.sort_values("obs_flux").reset_index(drop=True)
         # normalize ion label like 'II]' -> 'II'
         df["ion"] = df["ion"].astype(str).str.replace(r"\]$", "", regex=True)
@@ -560,7 +561,7 @@ class Recom_Lines:
             fig.tight_layout()
             path = f"{save_prefix}_corner.png"
             fig.savefig(path, dpi=200)
-            fig.savefig(f"{save_prefix}_corner.pdf")
+            # fig.savefig(f"{save_prefix}_corner.pdf")
             plt.close(fig)
             figs["corner"] = path
 
