@@ -6,7 +6,6 @@ import matplotlib
 matplotlib.use("TkAgg")
 matplotlib.rcParams.update({'font.size': 20})
 from matplotlib import pyplot as plt
-from astropy.io import fits
 from scipy import signal
 from datetime import datetime
 from scipy.optimize import curve_fit
@@ -122,7 +121,7 @@ def Spec_line_finding(filename, wavelength_unit='angstrom', ral_vel=0, length=10
     name = os.path.splitext(basename)[0]
 
     # Read the spectrum
-    flux,waves = readfile(filename, wavelength_unit=wavelength_unit, ral_vel=ral_vel, **dic_readfile)
+    flux, waves, flux_err = readfile(filename, wavelength_unit=wavelength_unit, ral_vel=ral_vel, **dic_readfile)
     # flux = flux*1e14
     # Fit and subtract the continuum
     flux,con,con_std= subtract_continuum(flux, waves, check=check_continuum, save=save_continuum,\
@@ -136,132 +135,66 @@ def Spec_line_finding(filename, wavelength_unit='angstrom', ral_vel=0, length=10
         print(f'Standard deviation of Radial Velocity: {vstd:.2f}')
 
     # Find the spectral lines
-    find_lines(flux, waves, con, con_std, fl_snr_threshold=snr_threshold, prominence=prominence, \
+    find_lines(flux, waves, con, con_std, flux_err, fl_snr_threshold=snr_threshold, prominence=prominence, \
                    show_graph=check_lines, linelist_name=name, append=append, **dic_find_line)
 
 
 
-def readfile(file, wavelength_unit='angstrom', \
-             checklist=['CRVAL1','CRPIX1','CTYPE1','CDELT1','CD1_1'],\
-             ral_vel = 0):
+
+def readfile(file, wavelength_unit='angstrom', ral_vel=0):
     """
-    Read the spectrum from 'FITS' file or text file. If input is text file, the column 1 should
-    be wavelengths, column 2 should be fluxes.
+    Read the spectrum from a text/ASCII file.
+
+    The input file must have at least three columns:
+    * column 1 : wavelength (in Angstrom or nm, set by ``wavelength_unit``)
+    * column 2 : flux
+    * column 3 : flux uncertainty
 
     Parameters
     ----------
     file : file, str
         File or filename to read.
     wavelength_unit : str
-        The unit of the wavelength. Two types are available: `nm` or `angstrom`.
-        Default is `angstrom`.
-    checklist: list, optional
-        The names of key arguments that used to generate the spectrum in a 'FITS' file.
-        * 'CRVAL1': The wavelength value at reference pixel.
-        * 'CRPIX1': The reference pixel. Default is 1.
-        * 'CTYPE1': The wavelength type. Default is linear.
-        * 'CDELT1': The prime argument of wavelength dispersion.
-        * 'CD1_1' : The second argument of wavelength dispersion.
-
-        NOTE: Only modify this parameter if you cannot read the spectrum.
+        The unit of the wavelength. Two types are available: ``nm`` or ``angstrom``.
+        Default is ``angstrom``.
     ral_vel : int, float, optional
         The radial velocity of the spectrum in units of km/s. This will shift all wavelength 
         points using the specified radial velocity. Default is 0. In units of km/s.
-    
+
     Returns
     -------
     flux : ndarray
         The array of fluxes of the spectrum.
     wav : ndarray
         The array of wavelengths of the spectrum.
+    flux_err : ndarray
+        The array of flux uncertainties of the spectrum.
     """
+    print('Reading spectrum from text/ASCII file.')
 
-    if file.endswith('.fits') or file.endswith('.fit') or file.endswith('.fits.gz'):
+    try:
+        spec = np.loadtxt(file)
+    except Exception as e:
+        print(e)
+        print("Could not recognize this file. Please check that it is a plain text/ASCII file.")
+        sys.exit()
 
-        print('Try Finding Spectrum From FITS File.')
-        spec = fits.open(file)
-        flux = spec[0].data
-        length = len(flux)
-        checklist2 = [checklist in spec[0].header for checklist in checklist]
+    if spec.ndim != 2 or spec.shape[1] < 3:
+        print("Input text file must have at least three columns: wavelength, flux, flux_err.")
+        sys.exit()
 
+    wav = spec[:, 0]
+    flux = spec[:, 1]
+    flux_err = spec[:, 2]
 
-        if not checklist2[0]:
-            print("Couldn't Find Wavelength Values At Reference Pixel."+ \
-                 f"\nNo Keyword  {checklist[0]}.")
-            sys.exit()
-
-        else:
-            wavs = spec[0].header[checklist[0]]
-
-
-        if not checklist2[3]:
-            if checklist[4]:
-                disper = spec[0].header[checklist[4]]
-
-            else:
-                print("Couldn't Find Wavelength Dispersion"+ \
-                     f"No Keyword {checklist[3]} & {checklist[4]}.")
-                sys.exit()
-
-        else:
-            disper = spec[0].header[checklist[3]]
-
-
-        if not checklist2[1]:
-            print("Warning: Couldn't Find Reference Pixel"+ \
-                 f"No Keyword {checklist[1]} Setting To 1.0.")
-            repi = 1.0
-
-        else:
-            repi = spec[0].header[checklist[1]]
-
-
-        if not checklist2[2]:
-            print("Warning: Couldn't Find Wavelength Type" + \
-                 f"No Keyword {checklist[2]} Setting To Linear.")
-            wav = np.linspace(wavs-(repi-1)*disper,wavs+(length-repi)*disper,num=length)
-
-        elif 'LIN' in spec[0].header[checklist[2]] or 'Lin' in spec[0].header[checklist[2]]:
-            wav = np.linspace(wavs-(repi-1)*disper,wavs+(length-repi)*disper,num=length)
-
-        else:
-            # wav = np.array([wavs*np.exp((i-repi)*disper/wavs) for i in range(1,length+1)])
-            wav = np.linspace(wavs-(repi-1)*disper,wavs+(length-repi)*disper,num=length)
-
-        
-        if wavelength_unit=='angstrom':
-            wav = (c-ral_vel)*wav/c
-
-        elif wavelength_unit=='nm':
-            wav = (c-ral_vel)*wav/c*10
-
-
-        
-
-
-    else:
-        print('Try Finding Spectrum From Text File.')
-
-        try:
-            spec = np.loadtxt(file)
-            flux = spec[:,1]
-            wav = spec[:,0]
-
-            if wavelength_unit=='angstrom':
-                wav = (c-ral_vel)*wav/c
-
-            elif wavelength_unit=='nm':
-                wav = (c-ral_vel)*wav/c*10
-        except Exception as e:
-            print(e)
-            print("Could Not Recognize This File.\n"+ \
-            "Please Check The Format of File or Whether The FITS-format File Ends With '.fits'. ")
-            sys.exit()
+    if wavelength_unit == 'angstrom':
+        wav = (c - ral_vel) * wav / c
+    elif wavelength_unit == 'nm':
+        wav = (c - ral_vel) * wav / c * 10
 
     print(f'Wavelength Range: {wav[0]:.3f} -- {wav[-1]:.3f}')
 
-    return flux , wav
-
+    return flux, wav, flux_err
 
 
 def _subtract_continuum(flux, wavelength, length, percentile=25):
@@ -356,7 +289,7 @@ def subtract_continuum(flux, wavelength, percentile=25, multiple=3, length=100, 
             plt.step(wavelength,flux, where='mid',color='black')
             plt.plot(wavelength,continuum,'--',color='r')
             # plt.title(con_name)
-            plt.xlabel('Wavelength [$\\rm{\AA}$]',fontsize=22)
+            plt.xlabel(r'Wavelength [$\rm{\AA}$]',fontsize=22)
             plt.ylabel('Relative Flux',fontsize=22)
             # plt.ylabel('Flux [$10^{-14}\\,\\rm{ergs\\,cm^{-2}\\,s^{-1}\\,\AA^{-1}}$]',fontsize=22)
             yn = ''
@@ -498,45 +431,112 @@ def multi_gauss(x, *p0):
 
 
 # Fit the one/multi-Gaussian function with the data
-def multi_gauss_fit(x, y, peak_index):
+
+def multi_gauss_fit(x, y, yerr, peak_index):
+    """
+    Fit one or multiple Gaussian profiles to the data using non-linear least squares,
+    taking into account the flux uncertainties.
+
+    Parameters
+    ----------
+    x : array_like
+        Wavelength array.
+    y : array_like
+        Flux array (continuum-subtracted).
+    yerr : array_like
+        1-sigma uncertainties on the flux values at each wavelength point.
+    peak_index : array_like
+        Indices of the initial peak positions used to initialize the Gaussian centers.
+
+    Returns
+    -------
+    popt : ndarray
+        Optimized parameters of the Gaussian profiles, flattened as
+        [mu1, sigma1, A1, mu2, sigma2, A2, ...].
+    errs : ndarray
+        1-sigma uncertainties on each parameter in ``popt``.
+    """
     num = len(peak_index)
     p0 = []
     for i in range(num):
         mu = x[peak_index[i]]
-        sigma = (x[-1] - x[0])/8/num
-        A = y[peak_index[i]]/2
-        p0.extend([mu,sigma,A])
+        sigma = (x[-1] - x[0]) / 8 / num
+        A = y[peak_index[i]] / 2
+        p0.extend([mu, sigma, A])
 
-    p0 = np.array(p0).reshape(-1,3)
+    p0 = np.array(p0).reshape(-1, 3)
 
-    popt,pcov = curve_fit(multi_gauss,x,y,p0=p0)
+    yerr = np.asarray(yerr)
+    if yerr.shape != y.shape:
+        raise ValueError("yerr must have the same shape as y.")
+
+    # Avoid zero or negative uncertainties
+    if np.any(yerr <= 0):
+        positive = yerr[yerr > 0]
+        fallback = np.median(positive) if positive.size > 0 else 1.0
+        yerr = np.where(yerr <= 0, fallback, yerr)
+
+    popt, pcov = curve_fit(multi_gauss, x, y, p0=p0, sigma=yerr, absolute_sigma=True)
     errs = np.sqrt(np.diag(pcov))
 
     return popt, errs
 
 
-def _get_fit_params(wavelength,subwav,subflux,continuum,subcon,\
-                    prominence,fwhm_threshold,announce=False):
+
+
+def _get_fit_params(wavelength, subwav, subflux, continuum, subcon, suberr,
+                    prominence, fwhm_threshold, announce=False):
     """
-    A sub-funcition for `find_lines`.
-    Find the peaks in the given range of spectrum and fit with one/multi-Gaussian function.
+    A sub-function for ``find_lines``.
+    Find the peaks in the given range of spectrum and fit with one/multi-Gaussian function,
+    taking into account the flux uncertainties.
+
+    Parameters
+    ----------
+    wavelength : array_like
+        Full wavelength grid of the spectrum.
+    subwav : array_like
+        Wavelength grid in the local window around a candidate line.
+    subflux : array_like
+        Continuum-subtracted fluxes in the local window.
+    continuum : array_like
+        Continuum values on the full wavelength grid.
+    subcon : array_like
+        Continuum uncertainties in the local window.
+    suberr : array_like
+        Flux uncertainties in the local window (from the input spectrum).
+    prominence : float
+        Prominence threshold (in units of ``subcon``) for peak finding.
+    fwhm_threshold : list of float
+        Allowed FWHM range in km/s.
+    announce : bool, optional
+        If True, print diagnostic messages when fitting fails.
+
+    Returns
+    -------
+    output : list
+        Each element contains
+        [mu, snr, fluxerr, margin_left, margin_right, y_fit, peak_flux, flux, fwhm, mu_err].
+        For emission lines ``flux`` is the integrated line flux.
+        For absorption lines ``flux`` is the equivalent width (EW).
     """
 
     output = []
 
     # Find peaks according to the prominence
-    peaks = find_peaks(abs(subflux),prominence=subcon*prominence)[0]
+    peaks = find_peaks(abs(subflux), prominence=subcon * prominence)[0]
 
     if len(peaks) == 0:
         if announce:
-            print('Cannot find any peak. Try reducing the ''prominence''')
-
+            print('Cannot find any peak. Try reducing the "prominence".')
         return 0
-    
+
+    # Combine continuum noise and input flux uncertainties in quadrature
+    total_err = np.sqrt(suberr**2 + subcon**2)
+
     # Fit the profile using one/multi-Gaussian function
     try:
-        popts, errs = multi_gauss_fit(subwav,subflux,peaks)
-    
+        popts, errs = multi_gauss_fit(subwav, subflux, total_err, peaks)
     except Exception as e:
         if announce:
             print(e)
@@ -544,23 +544,24 @@ def _get_fit_params(wavelength,subwav,subflux,continuum,subcon,\
         return 0
 
     # Number of Gaussian profiles
-    num = int(len(popts)/3)
-        
+    num = int(len(popts) / 3)
+
     for i in range(num):
         # Fitting parameters for each Gaussian profile
-        popt = popts[3*i:3*(i+1)]
+        popt = popts[3 * i:3 * (i + 1)]
+        perr = errs[3 * i:3 * (i + 1)]
 
-        mu ,sigma, A = popt
-        # line_center = popt[0]
-        snr = float(subflux[peaks[i]]/subcon[peaks[i]])
+        mu, sigma, A = popt
+        mu_err, sigma_err, A_err = perr
 
-        # Boundaries of profile
-        margin_left = np.argmin(np.abs(wavelength-(mu-5*sigma)))
-        margin_right = np.argmin(np.abs(wavelength-(mu+5*sigma)))
+        snr = float(subflux[peaks[i]] / subcon[peaks[i]])
+
+        # Boundaries of profile (±5σ around the center)
+        margin_left = np.argmin(np.abs(wavelength - (mu - 5 * sigma)))
+        margin_right = np.argmin(np.abs(wavelength - (mu + 5 * sigma)))
         peak_flux = subflux[peaks[i]]
 
-
-        fwhm = abs(2.355*sigma)/mu*c
+        fwhm = abs(2.355 * sigma) / mu * c
 
         if fwhm > fwhm_threshold[1] or fwhm < fwhm_threshold[0]:
             if announce:
@@ -568,57 +569,60 @@ def _get_fit_params(wavelength,subwav,subflux,continuum,subcon,\
             else:
                 continue
 
-        mu_err = errs[0]
-        sigma_err = errs[1]
-        A_err = errs[2]
-
-        y_fit = multi_gauss(wavelength[margin_left:margin_right+1],*popt)
+        y_fit = multi_gauss(wavelength[margin_left:margin_right + 1], *popt)
 
         if len(y_fit) == 0:
             continue
 
-        # If it's absorption profile
+        # If it's absorption profile -> compute equivalent width (EW)
         if A < 0:
-            sub_c = continuum[margin_left:margin_right+1]
-            # sumFlux = sum(y_fit/sub_c)*(subwav[1]-subwav[0])
+            sub_c = continuum[margin_left:margin_right + 1]
             delta_x = np.diff(subwav).mean()
-            flux = np.sum((y_fit / sub_c) * delta_x)
-            # flux = A * sigma * np.sqrt(2 * np.pi) / sub_c
-            
+            flux = np.sum((y_fit / sub_c) * delta_x)  # EW
         else:
+            # Emission line: integrated line flux
             flux = A * np.sqrt(2 * np.pi) * sigma
-        
-        fluxerr = abs(flux) * np.sqrt((A_err / A) ** 2 + (sigma_err / sigma) ** 2)
 
-        output.append([mu,snr,fluxerr,margin_left,\
-            margin_right,y_fit,peak_flux,flux,fwhm,mu_err])
-    
+        # Propagate uncertainties from A and sigma; they already include the flux errors
+        if A == 0 or sigma == 0:
+            fluxerr = np.nan
+        else:
+            fluxerr = abs(flux) * np.sqrt((A_err / A) ** 2 + (sigma_err / sigma) ** 2)
+
+        output.append([mu, snr, fluxerr, margin_left,
+                       margin_right, y_fit, peak_flux, flux, fwhm, mu_err])
+
     return output
 
 
-def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, fl_snr_threshold=7, \
-    prominence=6, show_graph=True, fwhm_threshold=[8,200],append=False):
+
+
+def find_lines(flux, wavelength, continuum, continuum_unc, flux_err,
+    linelist_name=None, fl_snr_threshold=7, prominence=6, show_graph=True,
+    fwhm_threshold=[5, 400], append=False):
     """
-    Find spectral lines based on `scipy.find_peaks`.
+    Find spectral lines based on ``scipy.signal.find_peaks``.
 
     Parameters
     ----------
     flux : array_like
-        The fluxes of the spectrum.
+        The continuum-subtracted fluxes of the spectrum.
     wavelength : array_like
         The wavelengths of the spectrum.
     continuum : array_like
         The continuum of the spectrum.
     continuum_unc : array_like
         The continuum uncertainties of the spectrum.
+    flux_err : array_like
+        The 1-sigma uncertainties of the original flux at each wavelength point.
     linelist_name : str, optional
-        Name of the file that saves the line list. If None, the current time will be used as the `linelist_name`.
+        Name of the file that saves the line list. If None, the current time will be used as the ``linelist_name``.
     fl_snr_threshold : float, optional
         The minimum SNR value of the spectral line to be found. Default is 7.
     prominence : float, optional
-        Required prominence of peaks. See details in `scipy.signal.peak_prominences`. The parameter input 
-        here is the multiple of the continuum uncertainty. e.g., `prominence
-        = 2` means 2 multiplied by the continuum uncertainties. Default is 4.
+        Required prominence of peaks. See details in ``scipy.signal.peak_prominences``. The parameter input 
+        here is the multiple of the continuum uncertainty. e.g., ``prominence = 2`` means 2 multiplied by
+        the continuum uncertainties. Default is 6.
     show_graph : bool, optional
         If True, an interactive plot will be presented with the spectral lines automatically found. The 
         lines found automatically will be colored by blue or red in order to distinguish the boundaries of 
@@ -631,141 +635,116 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
         * Place the cursor within the wavelength of line you want to delete and press the keyboard 'D' 
           to delete this line. Lines found automatically can also be deleted.
     fwhm_threshold : list of float, optional
-        The fwhm range of the fitted spectral lines, out of range will be excluded. The list length of fwhm_threshold 
-        must be 2, the first being the lower limit and the second the upper limit. Default is [8,200]. In units of km/s.
+        The FWHM range of the fitted spectral lines; out-of-range lines will be excluded. The list length 
+        of ``fwhm_threshold`` must be 2, the first being the lower limit and the second the upper limit.
+        Default is [8, 200] km/s.
 
     Returns
     -------
-    out : file, 2-D ndarray
+    out : 2-D ndarray
         The output line list.
         * column 1 : center wavelength 
         * column 2 : wavelength error
-        * column 3 : flux
-        * column 4 : flux error
+        * column 3 : flux (emission) or equivalent width (absorption)
+        * column 4 : flux/EW error
         * column 5 : FWHM (km/s)
         * column 6 : SNR
     """
 
     # Extra wavelength points on each boundary of the line
-    move_step = int(0.5/(wavelength[1]-wavelength[0]) + 1) + 1
+    move_step = int(0.5 / (wavelength[1] - wavelength[0]) + 1) + 1
 
     # Threshold condition of the SNR
-    condi = (flux/continuum_unc >fl_snr_threshold)|(flux/continuum_unc <-fl_snr_threshold)
+    condi = (flux / continuum_unc > fl_snr_threshold) | (flux / continuum_unc < -fl_snr_threshold)
 
     # Extract all boundaries (index of True)
     margin_bool = np.diff(condi) 
 
     # Check if the first wavelength point or the last wavelength point is a line boundary
-    if condi[0] :
-        margin_bool = np.insert(margin_bool,0,1)
-
+    if condi[0]:
+        margin_bool = np.insert(margin_bool, 0, 1)
     else:
-        margin_bool = np.insert(margin_bool,0,0)
+        margin_bool = np.insert(margin_bool, 0, 0)
 
-    if condi[-1] :
-        margin_bool = np.insert(margin_bool,-1,1)
-
+    if condi[-1]:
+        margin_bool = np.insert(margin_bool, -1, 1)
     else:
-        margin_bool = np.insert(margin_bool,-1,0)
+        margin_bool = np.insert(margin_bool, -1, 0)
 
     # Reshape the indexes of boundaries
-    margin_index = np.argwhere(margin_bool).reshape(-1,2)
+    margin_index = np.argwhere(margin_bool).reshape(-1, 2)
 
-    # Each boundary moves a `move_step`
-    margin_index[:,0] = margin_index[:,0] - move_step 
-    margin_index[:,1] = margin_index[:,1] + move_step 
-
-    # plt.plot(wavelength,flux,'grey')
-    # plt.vlines(wavelength[margin_index],ymin=-1,ymax=1)
-    # plt.show()
+    # Each boundary moves a ``move_step``
+    margin_index[:, 0] = margin_index[:, 0] - move_step 
+    margin_index[:, 1] = margin_index[:, 1] + move_step 
 
     # Ensure the indexes do not exceed the wavelength range of spectrum
-    r_beyond = np.sum((margin_index>=len(wavelength)) == True)
-    l_beyond = np.sum((margin_index<0) == True)
-    margin_index[margin_index<0] = np.arange(l_beyond)
-    margin_index[margin_index>=len(wavelength)] = \
-    np.linspace(len(wavelength)-r_beyond,len(wavelength)-1,num=r_beyond)
+    r_beyond = np.sum((margin_index >= len(wavelength)) == True)
+    l_beyond = np.sum((margin_index < 0) == True)
+    margin_index[margin_index < 0] = np.arange(l_beyond)
+    margin_index[margin_index >= len(wavelength)] =         np.linspace(len(wavelength) - r_beyond, len(wavelength) - 1, num=r_beyond)
 
     # Combine the lines if indexes overlap
-    for i in range(len(margin_index)-1):
-        if margin_index[i,1] >= margin_index[i+1,0]:
-            margin_index[i,1] = margin_index[i+1,1]
-            margin_index[i+1,0] = margin_index[i,0]
+    for i in range(len(margin_index) - 1):
+        if margin_index[i, 1] >= margin_index[i + 1, 0]:
+            margin_index[i, 1] = margin_index[i + 1, 1]
+            margin_index[i + 1, 0] = margin_index[i, 0]
 
     for i in range(len(margin_index)):
-        l_condi = margin_index[:,0]==margin_index[i,0]
-        margin_index[l_condi,1] = max(margin_index[l_condi,1])
+        l_condi = margin_index[:, 0] == margin_index[i, 0]
+        margin_index[l_condi, 1] = max(margin_index[l_condi, 1])
 
-    margin_index = np.unique(margin_index).reshape(-1,2)
+    margin_index = np.unique(margin_index).reshape(-1, 2)
     margin = wavelength[margin_index]
 
     if show_graph:
-        fig = plt.figure(figsize=(16,9))
-        plt.step(wavelength,flux,where='mid',color='black')
+        fig = plt.figure(figsize=(16, 9))
+        plt.step(wavelength, flux, where='mid', color='black')
         plt.title(linelist_name)
-        plt.suptitle("Press 'x' to specify the boundary of the new added line, press 'd' to remove line.")
-        plt.xlabel('Wavelength [$\\rm{\AA}$]',fontsize=22)
-        plt.ylabel('Relative Flux',fontsize=22)
-        # plt.ylabel('Flux [$10^{-14}\\,\\rm{ergs\\,cm^{-2}\\,s^{-1}\\,\AA^{-1}}$]',fontsize=22)
+        plt.suptitle("Press 'x' to fit the line, 'd' to remove line, 'a' to integrate between two boundaries",fontsize=14)
+        plt.xlabel(r'Wavelength [$\rm{\AA}$]', fontsize=22)
+        plt.ylabel('Relative Flux', fontsize=22)
 
     output = []
-    # wavindice = []
-    for i in range(len(margin_index)):
+    lines = []
+    colors = ['r', 'b']
+    num = 0
 
+    for i in range(len(margin_index)):
         # For each group of line boundaries
-        condi = (wavelength>=margin[i,0])&(wavelength<=margin[i,1])
+        condi = (wavelength >= margin[i, 0]) & (wavelength <= margin[i, 1])
         subwav = wavelength[condi]
         subflux = flux[condi]
         subcon = continuum_unc[condi]
-        
+        suberr = flux_err[condi]
+
         # Get the fitting parameters
-        out = _get_fit_params(wavelength,subwav,subflux,continuum,subcon,\
-                              prominence,fwhm_threshold)
+        out = _get_fit_params(wavelength, subwav, subflux, continuum, subcon, suberr,
+                              prominence, fwhm_threshold)
 
         if out != 0:
-            for i in out:
-                output.append(i)
-
-
-        # Save the flux points if fit is successful
-        # wavindice += list(range(margin_index[i,0],margin_index[i,1]+1))
-
-    # Delete the flux and wavelength points of these lines, the rest points are treated as continuum
-    # newwav = np.delete(wavelength,wavindice)
-    # newflux = np.delete(flux,wavindice)
-
-    # if len(newwav) == 0:
-    #     print('The input SNR is too small!')
-    #     sys.exit()
-
-
-    # delnum = []
-
-    # Use two colors to represent the lines found
-    c = ['r','b']
-    num = 0
-    lines = []
+            for j in out:
+                output.append(j)
 
     # Plot the found lines
     if show_graph:
         for i in range(len(output)):
             num += 1
-            auto_line = plt.plot(wavelength[output[i][3]:output[i][4]+1],output[i][5],\
-                                '--',color=c[num%2])
+            auto_line = plt.plot(wavelength[output[i][3]:output[i][4] + 1], output[i][5],
+                                 '--', color=colors[num % 2])
             if output[i][1] > 0:
-                auto_line1 = plt.text(output[i][0],max(output[i][5])*1.03,\
-                                f'{output[i][0]:.3f}',rotation=90,horizontalalignment='center', verticalalignment='bottom')
+                auto_line1 = plt.text(output[i][0], max(output[i][5]) * 1.03,
+                                      f'{output[i][0]:.3f}', rotation=90,
+                                      horizontalalignment='center', verticalalignment='bottom')
             else:
-                auto_line1 = plt.text(output[i][0],min(output[i][5])*1.03,\
-                                f'{output[i][0]:.3f}',rotation=90,horizontalalignment='center', verticalalignment='top')
-            lines.append([wavelength[output[i][3]],wavelength[output[i][4]],\
-                            auto_line,auto_line1,output[i][0]])
+                auto_line1 = plt.text(output[i][0], min(output[i][5]) * 1.03,
+                                      f'{output[i][0]:.3f}', rotation=90,
+                                      horizontalalignment='center', verticalalignment='top')
+            lines.append([wavelength[output[i][3]], wavelength[output[i][4]],
+                          auto_line, auto_line1, output[i][0]])
 
-
-
-
-    #output [line_center, snr, res, left_indice, right_indice, y_fit, peakflux, totalflux, fwhm, waverr]
     edge = []
+    edge_int = []
 
     # Functions of interactive interface
     def key_event(event):
@@ -778,54 +757,141 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
                 edge.append(event.xdata)
 
             if len(edge) == 2:
-                
                 if edge[0] == edge[1]:
                     print('Wavelength range is too small.')
                     edge.clear()
-                
                 else:
                     edge.sort()
-                    ldx = np.argmin(abs(wavelength-edge[0]))
-                    rdx = np.argmin(abs(wavelength-edge[1]))
-                    x = wavelength[ldx:rdx+1]
-                    y = flux[ldx:rdx+1]
-                    print(f'Total observed flux (original): {sum(y)*(np.diff(x).mean()):.3e}')
-                    subcon = continuum_unc[ldx:rdx+1]
+                    ldx = np.argmin(abs(wavelength - edge[0]))
+                    rdx = np.argmin(abs(wavelength - edge[1]))
+                    x = wavelength[ldx:rdx + 1]
+                    y = flux[ldx:rdx + 1]
+                    print(f'Total observed flux (original): {sum(y) * (np.diff(x).mean()):.3e}')
+                    subcon = continuum_unc[ldx:rdx + 1]
+                    suberr = flux_err[ldx:rdx + 1]
 
-                    out = _get_fit_params(wavelength,x,y,continuum,subcon,\
-                                          prominence,fwhm_threshold,announce=True)
-                    # output.append([line_center,snr,res,margin_left,margin_right,y_fit,peak_flux,sumFlux,fwhm])
+                    out = _get_fit_params(wavelength, x, y, continuum, subcon, suberr,
+                                          prominence, fwhm_threshold, announce=True)
+
                     if out != 0:
                         print('Successful line fitting.')
-                        for i in out:
-                            line = plt.plot(wavelength[i[3]:i[4]+1],i[5],'--',color='green',linewidth=2)
-                            if i[1]>0:
-                                line1 = plt.text(i[0],max(i[5])*1.03,f'{i[0]:.3f}',rotation=90,horizontalalignment='center', verticalalignment='bottom')
+                        for j in out:
+                            line = plt.plot(wavelength[j[3]:j[4] + 1], j[5], '--',
+                                            color='green', linewidth=2)
+                            if j[1] > 0:
+                                line1 = plt.text(j[0], max(j[5]) * 1.03, f'{j[0]:.3f}',
+                                                 rotation=90, horizontalalignment='center',
+                                                 verticalalignment='bottom')
                             else:
-                                line1 = plt.text(i[0],min(i[5])*1.03,f'{i[0]:.3f}',rotation=90,horizontalalignment='center', verticalalignment='top')
-                            output.append(i)
-                            lines.append([wavelength[i[3]],wavelength[i[4]],line,line1,i[0]])
+                                line1 = plt.text(j[0], min(j[5]) * 1.03, f'{j[0]:.3f}',
+                                                 rotation=90, horizontalalignment='center',
+                                                 verticalalignment='top')
+                            output.append(j)
+                            lines.append([wavelength[j[3]], wavelength[j[4]],
+                                          line, line1, j[0]])
 
-                            if i[7] > 0:
-                                print(f'Line center: {i[0]:.3f}.'+ \
-                                    f'Line fitted flux : {i[7]:.3e}.')
+                            if j[7] > 0:
+                                print(f'Line center: {j[0]:.3f}. Line fitted flux : {j[7]:.3e}.')
                             else:
-                                print(f'Line center: {i[0]:.3f}.'+ \
-                                    f'Equivalent Width : {i[7]:.3e}.')
+                                print(f'Line center: {j[0]:.3f}. Equivalent Width : {j[7]:.3e}.')
 
                     edge.clear()
                     plt.show()
-        
+
+
+        # Integrate flux directly between two boundaries
+        if event.key in ['a', 'A']:
+
+            if event.xdata is None:
+                return
+
+            if len(edge_int) != 2:
+                print(f'a: {event.xdata:.3f}')
+                edge_int.append(event.xdata)
+
+            if len(edge_int) == 2:
+                if edge_int[0] == edge_int[1]:
+                    print('Wavelength range is too small.')
+                    edge_int.clear()
+                else:
+                    edge_int.sort()
+                    ldx = np.argmin(abs(wavelength - edge_int[0]))
+                    rdx = np.argmin(abs(wavelength - edge_int[1]))
+
+                    x = wavelength[ldx:rdx + 1]
+                    y = flux[ldx:rdx + 1]
+                    subcon = continuum_unc[ldx:rdx + 1]
+                    suberr = flux_err[ldx:rdx + 1]
+                    total_err = np.sqrt(suberr**2 + subcon**2)
+
+                    if len(x) < 2:
+                        print('Too few points in the selected region.')
+                        edge_int.clear()
+                        return
+
+                    delta_x = np.diff(x).mean()
+
+                    # Directly integrated line flux (continuum-subtracted)
+                    int_flux = np.sum(y * delta_x)
+                    int_err = np.sqrt(np.sum((total_err * delta_x)**2))
+
+                    # Determine center, width and SNR
+                    idx_peak = np.argmax(np.abs(y))
+                    mu = x[idx_peak]
+                    mu_err = delta_x / 2.0
+                    fwhm = abs(edge_int[1] - edge_int[0]) / mu * c if mu != 0 else 0.0
+
+                    # For emission use integrated flux; for absorption compute EW
+                    if int_flux >= 0:
+                        flux_val = int_flux
+                        flux_err_val = int_err
+                    else:
+                        sub_c = continuum[ldx:rdx + 1]
+                        ew = np.sum(y / sub_c * delta_x)
+                        ew_err = np.sqrt(np.sum(((total_err / sub_c) * delta_x)**2))
+                        flux_val = ew
+                        flux_err_val = ew_err
+
+                    snr = flux_val / flux_err_val if flux_err_val > 0 else 0.0
+                    peak_flux = np.max(y) if flux_val >= 0 else np.min(y)
+
+                    # Build a "fit" profile as the actual data segment
+                    y_fit = y.copy()
+
+                    new_entry = [mu, snr, flux_err_val, ldx, rdx,
+                                y_fit, peak_flux, flux_val, fwhm, mu_err]
+                    output.append(new_entry)
+
+                    # Plot the integrated region and label
+                    line = plt.plot(x, y_fit, '--', color='magenta', linewidth=2)
+                    if flux_val > 0:
+                        text_y = max(y_fit) * 1.03
+                        va = 'bottom'
+                    else:
+                        text_y = min(y_fit) * 1.03
+                        va = 'top'
+
+                    line1 = plt.text(mu, text_y, f'{mu:.3f}', rotation=90,
+                                    horizontalalignment='center', verticalalignment=va)
+
+                    lines.append([wavelength[ldx], wavelength[rdx], line, line1, mu])
+
+                    if flux_val > 0:
+                        print(f'Line center: {mu:.3f}. Integrated line flux : {flux_val:.3e} ± {flux_err_val:.3e}.')
+                    else:
+                        print(f'Line center: {mu:.3f}. Equivalent Width : {flux_val:.3e} ± {flux_err_val:.3e}.')
+
+                    edge_int.clear()
+                    plt.show()
         # Delete lines
         if event.key == 'd':
             left = np.array([i[0] for i in lines])
             right = np.array([i[1] for i in lines])
-            lcenter = (left+right)/2
-            del_ix = np.argmin(abs(event.xdata-lcenter))
+            lcenter = (left + right) / 2
+            del_ix = np.argmin(abs(event.xdata - lcenter))
 
             if event.xdata < left[del_ix] or event.xdata > right[del_ix]:
                 print("Can't find a line coverd by cursor")
-
             else:
                 print(f"Line {lines[int(del_ix)][4]:.3f} has been deleted.")
                 lines[int(del_ix)][2][0].remove()
@@ -834,12 +900,9 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
                 del output[int(del_ix)]
                 plt.show()
 
-
     if show_graph:
         fig.canvas.mpl_connect('key_press_event', key_event)
-        # plt.tight_layout()
         plt.show()
-
 
     line_c = [i[0] for i in output]
     line_s = [i[1] for i in output]
@@ -850,22 +913,25 @@ def find_lines(flux, wavelength, continuum, continuum_unc, linelist_name=None, f
 
     print(f'Total of {len(line_c)} lines found.')
 
-    out = np.array(np.stack((line_c,line_m,line_f,line_r,line_w,line_s),axis=-1),dtype=np.float64)
-    out = out[out[:,0].argsort()]
-    
+    out = np.array(np.stack((line_c, line_m, line_f, line_r, line_w, line_s), axis=-1),
+                   dtype=np.float64)
+    out = out[out[:, 0].argsort()]
+
     if not linelist_name:
         linelist_name = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
 
     if append:
-        with open(f'{linelist_name}_linelist.txt','a') as f:
-            np.savetxt(f,out,fmt='%-12.3f %-12.3f %-12.2e %-12.2e %-12.2f %-12.1f')  
+        with open(f'{linelist_name}_linelist.txt', 'a') as f:
+            np.savetxt(f, out,
+                       fmt='%-12.3f %-12.3f %-12.2e %-12.2e %-12.2f %-12.1f')  
     else:
-        np.savetxt(f'{linelist_name}_linelist.txt',out,
+        np.savetxt(f'{linelist_name}_linelist.txt', out,
                    fmt='%-12.3f %-12.3f %-12.2e %-12.2e %-12.2f %-12.1f',
                    header='wavelength \t wav_err \t flux \t flux_err \t FWHM \t snr')
-    
+
+
 
 
 if __name__ == "__main__":
 
-    Spec_line_finding(r"C:\Users\DELL\Desktop\PyEMILI1\V1405Cas_2021May3.fits",prominence=6)
+    Spec_line_finding(r"C:\Users\DELL\Desktop\PyEMILI1\V1405Cas_2021May3.txt",prominence=6)
