@@ -835,11 +835,53 @@ def find_lines(flux, wavelength, continuum, continuum_unc, flux_err,
                     int_flux = np.sum(y * delta_x)
                     int_err = np.sqrt(np.sum((total_err * delta_x)**2))
 
-                    # Determine center, width and SNR
-                    idx_peak = np.argmax(np.abs(y))
+                    # Determine line center from the peak of |flux|
+                    y_abs = np.abs(y)
+                    idx_peak = np.argmax(y_abs)
                     mu = x[idx_peak]
                     mu_err = delta_x / 2.0
-                    fwhm = abs(edge_int[1] - edge_int[0]) / mu * c if mu != 0 else 0.0
+
+                    # --- Compute FWHM ---
+                    # Use the absolute profile so that both emission and absorption lines
+                    # are treated consistently.
+                    peak_val = y_abs[idx_peak]
+                    if peak_val > 0 and len(x) > 2:
+                        half_val = 0.5 * peak_val
+
+                        # Find left half-maximum crossing by linear interpolation
+                        x_left = None
+                        for k in range(idx_peak - 1, -1, -1):
+                            if (y_abs[k] - half_val) * (y_abs[k + 1] - half_val) <= 0:
+                                x0, x1 = x[k], x[k + 1]
+                                y0, y1 = y_abs[k], y_abs[k + 1]
+                                if y1 == y0:
+                                    x_left = x0
+                                else:
+                                    frac = (half_val - y0) / (y1 - y0)
+                                    x_left = x0 + frac * (x1 - x0)
+                                break
+
+                        # Find right half-maximum crossing by linear interpolation
+                        x_right = None
+                        for k in range(idx_peak, len(x) - 1):
+                            if (y_abs[k] - half_val) * (y_abs[k + 1] - half_val) <= 0:
+                                x0, x1 = x[k], x[k + 1]
+                                y0, y1 = y_abs[k], y_abs[k + 1]
+                                if y1 == y0:
+                                    x_right = x1
+                                else:
+                                    frac = (half_val - y0) / (y1 - y0)
+                                    x_right = x0 + frac * (x1 - x0)
+                                break
+
+                        if x_left is not None and x_right is not None and mu != 0:
+                            # Convert Δλ at half-maximum to velocity FWHM in km/s
+                            fwhm = abs(x_right - x_left) / mu * c
+                        else:
+                            # Fallback: use the full selected window as an approximate width
+                            fwhm = abs(edge_int[1] - edge_int[0]) / mu * c if mu != 0 else 0.0
+                    else:
+                        fwhm = 0.0
 
                     # For emission use integrated flux; for absorption compute EW
                     if int_flux >= 0:
