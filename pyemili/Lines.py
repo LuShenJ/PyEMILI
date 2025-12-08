@@ -34,6 +34,7 @@ class Line_list(object):
               Each value corresponds to the wavelength uncertainty on both sides of a line.
             * If input is a `2-D array-like` type with the shape of (n,2), these values should be in the 
               unit of Angstroms. It means you specify the wavelength uncertainty on each side of each line.
+              e.g., [-20,25] for one line.
 
         flux : array_like
             Input array of fluxes corresponds to `wavelength`.
@@ -432,7 +433,7 @@ class Line_list(object):
             # If input type is 1-D array-like
             if waverr.ndim == 1 and len(para) == len(self.wav):
                 self.waverr_type = 1
-                return np.tile(waverr/self.wav,(2,1)).T*self.c
+                return np.tile([-waverr/self.wav,waverr/self.wav],1).T*self.c
 
             # If input type is 2-D array-like
             elif waverr.ndim == 2 and len(para) == len(self.wav):
@@ -473,7 +474,7 @@ class Line_list(object):
         if match_list is None:
 
             if icf is None:
-                print('Using Default ICF')
+                print('Use Default ICF')
                 self.icf = np.array([0.01,0.5,0.4,0.1,0.0001])
                 self.icf = self.icf/sum(self.icf)
                 
@@ -482,7 +483,7 @@ class Line_list(object):
                 self.icfuc = True
             
             if v_cor is None:
-                print('Using Default Velocity Matrix')
+                print('Use Default Velocity Matrix')
                 self.v_cor = np.array([0,0,0,0,0],dtype=np.float64)
 
             else:
