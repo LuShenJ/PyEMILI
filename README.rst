@@ -30,7 +30,7 @@ Ensure that the versions of `numba` and `numpy` are compatible to avoid potentia
 
 Installation
 ------------
-
+Note: **PyEMILI is currently under active development**, and the codebase has been significantly revised. The user manual will be updated accordingly after these changes are finalized. For access to the most up-to-date version, please use git clone to obtain the source code.
 You can install PyEMILI by downloading the source code:
 
 Step 1: Download the code file from Releases
