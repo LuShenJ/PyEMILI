@@ -14,15 +14,15 @@ Key features of `Spec` module include:
 
 ```python
 from pyemili.Spec import Spec_line_finding
-Spec_line_finding('J0608_03may2019MagE.fits')
+Spec_line_finding('J0608_03may2019MagE.txt')
 ```
 
-The input file could be a FITS file that ends with `.fits`, `.fit` or `.fits.gz`, and also could be a text file that the first column is wavelength, and the second is flux. if successful (if not, you can read the spectrum yourself and generate a text file), the terminal will print:
+The input file should be an ASCII file with three columns: the first column is wavelength (in angstrom), the second is flux, and the third is flux uncertainty. After loading the file, the code will print the following output to the terminal:
 
 ```
-Try Finding Spectrum From FITS File.
+Reading spectrum from text/ASCII file.
 Wavelength Range: 3134.822 -- 10904.444
-Press 'y' to finish or 'n' to reset the parameters:
+Press 'y' to finish or 'n' to reset the parameters: 
 ```
 
 along with a plot:

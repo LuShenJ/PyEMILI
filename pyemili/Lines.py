@@ -6,7 +6,6 @@ been corrected and updated.
 
 import numpy as np
 import pandas as pd
-import sys
 from tqdm import tqdm
 from pyemili.numba_func import *
 import os 
@@ -276,8 +275,7 @@ class Line_list(object):
              print(f"Use Specified Abundance From '{abun_type}'")    
 
         else:
-            print("Invalid input 'abun_type'.")
-            sys.exit()
+            raise ValueError("Invalid input 'abun_type'.")
 
 
         eff_coe=True
@@ -299,15 +297,18 @@ class Line_list(object):
             effcoe_ix = []
 
             for i in effcoe_ion:
-
-                exec(f"self.{i}coe = np.load(os.path.join(self.rootdir,'pyemili','eff_reccoe','{i}_emiss_data.npy'), \
-                     allow_pickle=True).astype(np.float64)")
-
-                exec(f"self.{i}_ix = np.array([np.argmin(abs(self.coeTe['{i}']-self.Te)),np.argmin(abs(self.coeNe['{i}']-self.Ne))])")
-
-                exec(f"effcoes.append(self.{i}coe)")
-
-                exec(f"effcoe_ix.append(self.{i}_ix)")
+                coeff = np.load(
+                    os.path.join(self.rootdir, 'pyemili', 'eff_reccoe', f'{i}_emiss_data.npy'),
+                    allow_pickle=True
+                ).astype(np.float64)
+                coeff_ix = np.array([
+                    np.argmin(abs(self.coeTe[i] - self.Te)),
+                    np.argmin(abs(self.coeNe[i] - self.Ne))
+                ])
+                setattr(self, f"{i}coe", coeff)
+                setattr(self, f"{i}_ix", coeff_ix)
+                effcoes.append(coeff)
+                effcoe_ix.append(coeff_ix)
 
             self.effcoes = effcoes
             self.effcoe_ix = np.array(effcoe_ix)
@@ -348,12 +349,10 @@ class Line_list(object):
 
         print('Initializing Done')
 
-        open(f'{self.name}.out','w')
-        open(f'{self.name}.dat','w')
-        f1 = open(f'{self.name}.out','a')
-        f2 = open(f'{self.name}.dat','a')
+        f1 = open(f'{self.name}.out','w')
+        f2 = open(f'{self.name}.dat','w')
         if self.erc_list:
-            open(f'{self.name}_erc.dat','w')
+            open(f'{self.name}_erc.dat','w').close()
 
         for self.i in range(self.loop):
 
@@ -381,7 +380,11 @@ class Line_list(object):
                     f1.write(self._icf_v_out(self.icf,self.v_cor))
                     f1.write('\n')
                     f1.write('\n\n')
-                    self.write(f1,f2)
+                    try:
+                        self.write(f1,f2)
+                    finally:
+                        f1.close()
+                        f2.close()
                     break
 
             else:
@@ -419,7 +422,7 @@ class Line_list(object):
 
             else:
                 print(f"Invalid type of '{paraname}'.")
-                sys.exit()
+                raise ValueError(f"Invalid type of '{paraname}'.")
         
         if paraname == 'Wavelength_Error':
 
@@ -442,7 +445,7 @@ class Line_list(object):
 
             else:
                 print(f"Invalid type of '{paraname}'.")
-                sys.exit()
+                raise ValueError(f"Invalid type of '{paraname}'.")
     
 
 
@@ -453,11 +456,11 @@ class Line_list(object):
 
         if icf is not None and (not isinstance(icf,(np.ndarray,list,tuple)) or len(icf) != 5):
             print(f'Invalid Manually Specified ICF value: {icf}')
-            sys.exit()
+            raise ValueError(f'Invalid Manually Specified ICF value: {icf}')
 
         if v_cor is not None and (not isinstance(v_cor,(np.ndarray,list,tuple)) or len(v_cor) != 5):
             print(f'Invalid Manually Specified Velocity Matrix: {v_cor}')
-            sys.exit()
+            raise ValueError(f'Invalid Manually Specified Velocity Matrix: {v_cor}')
 
         if match_list is not None and (icf is not None or v_cor is not None):
             print('WARNING: Both Match File And Manually Specified ICF Or/And Velocity Matrix Detected.'+\
@@ -514,8 +517,7 @@ class Line_list(object):
                 self.__deplete(deplete)
 
         else:
-            print("Invalid type of 'deplete'.")
-            sys.exit()
+            raise ValueError("Invalid type of 'deplete'.")
 
 
     def __deplete(self,deplete):
@@ -528,9 +530,7 @@ class Line_list(object):
         factor = int(deplete[1])
 
         if factor == 0:
-            print('Factor cannot be zero as a dividend')
-            print("Please check your 'deplete' parameter")
-            sys.exit()
+            raise ValueError("Factor cannot be zero. Please check your 'deplete' parameter.")
 
         # Negative value enhances
         if factor < 0:
@@ -710,7 +710,7 @@ class Line_list(object):
             else:
                 ix5 = min_val[4]
 
-            if min(self.wav) < 10828 or max(self.wav) > 3188:
+            if min(self.wav) <= 10830 and max(self.wav) >= 3187:
                 # Check if the strong He I lines exist. If not, all He I candidates are not reliable.
                 HeI_3187 = sum(abs(lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].lab_wav-3187) <= 1)
                 HeI_4471 = sum(abs(lines[(ele==1)&(ion==0)&(lines.effcoe!=0)].lab_wav-4471) <= 1)
@@ -735,7 +735,7 @@ class Line_list(object):
                 else:
                     ixr1 = 0
 
-            if min(self.wav) < 10121 or max(self.wav) > 1641:
+            if min(self.wav) <= 10123 and max(self.wav) >= 1640:
                 # Check if the strong He II lines exist. If not, all He II candidates are not reliable.
                 HeII_1640 = sum(abs(lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].lab_wav-1640) <= 1)
                 HeII_3203 = sum(abs(lines[(ele==1)&(ion==1)&(lines.effcoe!=0)].lab_wav-3203) <= 1)
@@ -905,12 +905,10 @@ class Line_list(object):
                                        ((wav>upperl1)&(wav<=upperl2))]
 
         else:
-            print("\nInvalid type of 'sigma'.")    
-            sys.exit()
+            raise ValueError("Invalid type of 'sigma'.")
         
         if len(linesubframe) == 0:
-            print('\nWavelength error is too low!')
-            sys.exit()
+            raise ValueError("Wavelength error is too low.")
 
         return linesubframe
 
@@ -1534,9 +1532,6 @@ class Line_list(object):
                 # Write the brief output file 
                 f2.write(f'{line:8.2f}  {obs_flux:9.2E}  |  {Astr} \n')
                 pbar.update(1)
-
-
-
 
 if __name__ == "__main__":
     hf22 = np.loadtxt('../test/Hf2-2_linelist.txt',skiprows=1)

@@ -11,7 +11,6 @@ from datetime import datetime
 from scipy.optimize import curve_fit
 from scipy.signal import find_peaks
 from inspect import signature
-import sys
 import os
 from tqdm import tqdm
 
@@ -24,7 +23,7 @@ def Spec_line_finding(filename, wavelength_unit='angstrom', ral_vel=0, length=10
     An integrated function for spectral lines finding. The processes include: 
     * (1) Reading the spectrum from specified file.
     * (2) Fitting and then subtracting the continuum automatically.
-    * (3) Correcting the radial velocity if needed.
+    * (3) Correcting the radial velocity (optional).
     * (4) Finding the spectral lines.
 
     Only the prime parameters are listed here, more options can be specified by 
@@ -52,8 +51,10 @@ def Spec_line_finding(filename, wavelength_unit='angstrom', ral_vel=0, length=10
         If True, you will see a plot of the spectrum with the computed continuum and a
         command in the terminal. Follow what it says in the terminal, you can change the 
         testing parameters.
+        Requires a GUI/Tk/interactive plotting-capable environment.
     save_continuum : bool, optional
         If True, save the plot of the spectrum with the computed continuum. Default is False.
+        Requires a GUI/Tk/interactive plotting-capable environment.
     vel_cor : bool, optional
         If True, correct the radial velocity using the `correct_velocity` function.
         Default is False.
@@ -66,6 +67,7 @@ def Spec_line_finding(filename, wavelength_unit='angstrom', ral_vel=0, length=10
     check_lines : bool, optional
         If True, an interactive plot will be presented with the spectral lines automatically found. These 
         lines will be colored by blue or red in order to distinguish the boundaries of lines. Default is True.
+        Requires a GUI/Tk/interactive plotting-capable environment.
     append : bool, optional
         If True, instead of overwriting the saved line list file, the line list will be added starting from 
         the last line of the line list file.
@@ -102,19 +104,21 @@ def Spec_line_finding(filename, wavelength_unit='angstrom', ral_vel=0, length=10
 
             if key in list(signature(readfile).parameters):
                 dic_readfile[key] = kwargs.get(key)
-                break
+                continue
 
             if key in list(signature(subtract_continuum).parameters):
                 dic_subtract_c[key] = kwargs.get(key)
-                break
+                continue
 
             if key in list(signature(correct_velocity).parameters):
                 dic_c_vel[key] = kwargs.get(key)
-                break
+                continue
 
             if key in list(signature(find_lines).parameters):
                 dic_find_line[key] = kwargs.get(key)
-                break
+                continue
+
+            raise TypeError(f"Unexpected keyword argument: {key}")
 
     # Split the path and the filename 
     basename = os.path.basename(filename)
@@ -122,7 +126,7 @@ def Spec_line_finding(filename, wavelength_unit='angstrom', ral_vel=0, length=10
 
     # Read the spectrum
     flux, waves, flux_err = readfile(filename, wavelength_unit=wavelength_unit, ral_vel=ral_vel, **dic_readfile)
-    # flux = flux*1e14
+
     # Fit and subtract the continuum
     flux,con,con_std= subtract_continuum(flux, waves, check=check_continuum, save=save_continuum,\
                                          length=length, percentile=percentile, con_name=name, \
@@ -175,13 +179,12 @@ def readfile(file, wavelength_unit='angstrom', ral_vel=0):
     try:
         spec = np.loadtxt(file)
     except Exception as e:
-        print(e)
-        print("Could not recognize this file. Please check that it is a plain text/ASCII file.")
-        sys.exit()
+        raise ValueError(
+            "Could not recognize this file. Please check that it is a plain text/ASCII file."
+        ) from e
 
     if spec.ndim != 2 or spec.shape[1] < 3:
-        print("Input text file must have at least three columns: wavelength, flux, flux_err.")
-        sys.exit()
+        raise ValueError("Input text file must have at least three columns: wavelength, flux, flux_err.")
 
     wav = spec[:, 0]
     flux = spec[:, 1]
@@ -191,6 +194,8 @@ def readfile(file, wavelength_unit='angstrom', ral_vel=0):
         wav = (c - ral_vel) * wav / c
     elif wavelength_unit == 'nm':
         wav = (c - ral_vel) * wav / c * 10
+    else:
+        raise ValueError("wavelength_unit must be either 'angstrom' or 'nm'.")
 
     print(f'Wavelength Range: {wav[0]:.3f} -- {wav[-1]:.3f}')
 
@@ -202,9 +207,15 @@ def _subtract_continuum(flux, wavelength, length, percentile=25):
     The helper function of `subtract_continuum`.
     """
 
-    # Window length 
-    length = length/(wavelength[1]-wavelength[0])
-    half_len = int(length/2)
+    if len(wavelength) < 2:
+        raise ValueError("At least two wavelength points are required to subtract the continuum.")
+    pixel_width = abs(wavelength[1] - wavelength[0])
+    if pixel_width == 0:
+        raise ValueError("Adjacent wavelength points must not be identical.")
+
+    # Window length in pixels. Keep it non-zero for very small requested windows.
+    length = max(1, int(length / pixel_width))
+    half_len = max(1, int(length / 2))
     continuum = np.zeros_like(flux)
 
     for i in range(len(flux)):
@@ -216,7 +227,7 @@ def _subtract_continuum(flux, wavelength, length, percentile=25):
             subspec = flux[i-half_len:i+1+half_len]
 
         else:
-            subspec = flux[i-half_len:len(flux)-1]
+            subspec = flux[i-half_len:len(flux)]
 
         continuum[i] = np.percentile(subspec,percentile)
 
@@ -254,6 +265,7 @@ def subtract_continuum(flux, wavelength, percentile=25, multiple=3, length=100, 
         testing parameters.
     save : bool, optional
         Whether save the plot of the spectrum with the computed continuum. Default is False.
+        Requires a GUI/Tk/interactive plotting-capable environment.
     con_name : str, optional
         This is the title and filename of the plot if `check` and `save` are True respectively. 
         Otherwise, the current time will be used as the `con_name`.
@@ -326,7 +338,12 @@ def subtract_continuum(flux, wavelength, percentile=25, multiple=3, length=100, 
     subtracted_flux = flux - continuum
 
     continuum_unc = np.zeros_like(subtracted_flux)
-    std_len = int((length/(wavelength[1]-wavelength[0])))
+    if len(wavelength) < 2:
+        raise ValueError("At least two wavelength points are required to estimate continuum uncertainty.")
+    pixel_width = abs(wavelength[1] - wavelength[0])
+    if pixel_width == 0:
+        raise ValueError("Adjacent wavelength points must not be identical.")
+    std_len = max(1, int(length / pixel_width))
 
     for i in range(len(continuum_unc)):
         if i < std_len:
@@ -336,13 +353,15 @@ def subtract_continuum(flux, wavelength, percentile=25, multiple=3, length=100, 
             subspec = subtracted_flux[i-std_len:i+1+std_len]
 
         else:
-            subspec = subtracted_flux[i-std_len:len(subtracted_flux)-1]
+            subspec = subtracted_flux[i-std_len:len(subtracted_flux)]
 
         median = np.percentile(abs(subspec),25)
+        clipped = subspec[(subspec<median*multiple)&(subspec>-median*multiple)]
+        if len(clipped) == 0:
+            clipped = subspec
 
         # Compute the continuum uncertainty of each wavelength point 
-        continuum_unc[i] = np.std(subspec[(subspec<median*multiple)&\
-                                          (subspec>-median*multiple)])
+        continuum_unc[i] = np.std(clipped)
 
     return subtracted_flux, continuum, continuum_unc
 

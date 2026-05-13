@@ -34,7 +34,6 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 import logging
 import os
-import sys
 import warnings
 
 import numpy as np
@@ -50,7 +49,7 @@ import corner
 # -----------------------
 logger = logging.getLogger("recom_lines")
 if not logger.handlers:
-    handler = logging.StreamHandler(sys.stdout)
+    handler = logging.StreamHandler()
     fmt = logging.Formatter("[%(levelname)s] %(message)s")
     handler.setFormatter(fmt)
     logger.addHandler(handler)
@@ -122,9 +121,16 @@ class Recom_Lines:
         self.rootdir = rootdir
 
 
+        first_data_line = None
         with open(filename) as f:
-            first_line = f.readline().strip()
-        ncols = len(first_line.split())
+            for line in f:
+                stripped = line.strip()
+                if stripped and not stripped.startswith("#"):
+                    first_data_line = stripped
+                    break
+        if first_data_line is None:
+            raise ValueError(f"No data rows found in file: {filename}")
+        ncols = len(first_data_line.split())
 
         # set column names based on number of columns
         if ncols == 5:
@@ -194,11 +200,11 @@ class Recom_Lines:
         self.Te_min, self.Te_max = float(Te_grid.min()), float(Te_grid.max())
         self.Ne_min, self.Ne_max = float(Ne_grid.min()), float(Ne_grid.max())
 
-        if self.Ne_log:
+        if self.Ne_log is not None:
             if self.Ne_log < self.Ne_min or self.Ne_log > self.Ne_max:
                 raise ValueError(f"Input log(Ne)={self.Ne_log:.2f} is outside the model grid range [{self.Ne_min:.2f}, {self.Ne_max:.2f}].")
 
-        if self.Te_log:
+        if self.Te_log is not None:
             if self.Te_log < self.Te_min or self.Te_log > self.Te_max:
                 raise ValueError(f"Input log(Te)={self.Te_log:.2f} is outside the model grid range [{self.Te_min:.2f}, {self.Te_max:.2f}].")
         # Full emissivity cube for this ion: [n_lines, n_Te, n_Ne]
@@ -211,8 +217,8 @@ class Recom_Lines:
         )
 
     def _build_reference_normalizer(self) -> None:
-        """Prepare normalization to Hβ or to max-within-ion depending on setting."""
-        # Hβ emissivity table
+        """Prepare normalization to Hbeta or to max-within-ion depending on setting."""
+        # Hbeta emissivity table
         H_Te = np.log10(self.coeTe["HI"])  # H I grids
         H_Ne = np.log10(self.coeNe["HI"])
         H_cube = self.Coes["HI"]
@@ -243,19 +249,25 @@ class Recom_Lines:
         # Observed vectors (with chosen normalization)
         obs = self.data["obs_flux"].to_numpy(dtype=float)
         err = self.data["obs_fluxerr"].to_numpy(dtype=float)
+        if np.any(~np.isfinite(err)) or np.any(err <= 0):
+            raise ValueError("Observed flux uncertainties must be finite and positive.")
 
         if self.normalize_to == "within_ion_max":
             ref = obs.max()
+            if not np.isfinite(ref) or ref <= 0:
+                raise ValueError(
+                    "Cannot normalize observed fluxes by within-ion maximum because the reference flux is not positive."
+                )
             obs, err = obs / ref, err / ref
             self.obs_norm = obs
             self.err_norm = err
             self.use_abundance_in_model = False  # abundance cancels
         else:
-            # Expect user to have already normalized to I(Hβ)=1. If not, the model
-            # will still work but results interpret as relative to Hβ.
+            # Expect user to have already normalized to I(Hbeta)=1. If not, the model
+            # will still work but results interpret as relative to Hbeta.
             self.obs_norm = obs
             self.err_norm = err
-            # For metal ions, abundance is needed to link to Hβ emissivity
+            # For metal ions, abundance is needed to link to Hbeta emissivity
             self.use_abundance_in_model = (self.spec != "H I")
 
 
@@ -294,9 +306,13 @@ class Recom_Lines:
         # Normalization route
         if self.normalize_to == "within_ion_max":
             ref = emiss.max()
+            if not np.isfinite(ref) or ref <= 0:
+                return np.full_like(emiss, np.nan, dtype=float)
             model = emiss / ref
         else:
             Hbeta = float(self.Hbeta_interp([[Te_log_Hbeta, Ne_log_Hbeta]])[0])
+            if not np.isfinite(Hbeta) or Hbeta <= 0:
+                return np.full_like(emiss, np.nan, dtype=float)
             model = emiss / Hbeta
 
 
@@ -314,7 +330,7 @@ class Recom_Lines:
         if not (self.Ne_min <= Ne_log <= self.Ne_max):
             return -np.inf
 
-        # Abundance prior: within ±2 dex around A12_init
+        # Abundance prior: within +/-2 dex around A12_init
         if self.fit_abundance and self.use_abundance_in_model and self.spec != "H I":
             assert self.A12_init is not None
             if not (self.A12_init - 2.0 <= A12 <= self.A12_init + 2.0):
@@ -335,6 +351,8 @@ class Recom_Lines:
             return -np.inf
 
         model = self._model_vector(Te_log, Ne_log, A12)
+        if not np.all(np.isfinite(model)):
+            return -np.inf
         chi2 = np.sum((self.obs_norm - model) ** 2 / (self.err_norm ** 2))
         return lp - 0.5 * chi2
 
@@ -377,7 +395,8 @@ class Recom_Lines:
             Ionic abundances (X/H) for [H I, He I, N II, O II, C II] to set the abundance prior center.
             Default values are [1.0, 8.5e-2, 6.8e-5, 4.9e-4, 2.7e-4].
         flux_threshold : float
-            Drop observed features below this flux after any normalization.
+            Drop observed features below this flux after ``flux_normalize`` is applied, before
+            the model-specific normalization used during fitting.
         flux_normalize : float
             Divide observed flux and errors by this scalar before fitting.
         vel : float
@@ -535,10 +554,22 @@ class Recom_Lines:
                 break
 
         # Final thinning/burn-in
-        tau = sampler.get_autocorr_time()
-        burn = int(2 * np.max(tau))
+        try:
+            tau = sampler.get_autocorr_time()
+        except emcee.autocorr.AutocorrError as exc:
+            warnings.warn(
+                "The chain is shorter than the recommended autocorrelation-time length; "
+                "using the current tau estimate with tol=0 for burn-in/thinning. "
+                f"Original emcee warning: {exc}",
+                RuntimeWarning,
+            )
+            tau = sampler.get_autocorr_time(tol=0)
+        burn = min(int(2 * np.max(tau)), max(0, sampler.iteration // 2))
         thin = max(1, int(0.5 * np.min(tau)))
         flat = sampler.get_chain(discard=burn, flat=True, thin=thin)
+        if flat.size == 0:
+            warnings.warn("Posterior chain is empty after burn-in; using the full chain instead.", RuntimeWarning)
+            flat = sampler.get_chain(discard=0, flat=True, thin=thin)
 
         # Summaries
         meds = np.percentile(flat, 50, axis=0)
