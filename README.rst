@@ -125,7 +125,6 @@ The main parameters of ``Line_list.identify()`` include:
 - ``col_cor``: dilution factor for collisionally excited lines. The default value is ``0.1``.
 - ``iteration``: if ``True``, PyEMILI performs a first-pass identification and then re-identifies lines with updated ``icf`` and ``v_cor``.
 - ``erc_list``: if ``True``, PyEMILI writes an additional recombination-line fitting list.
-- ``match_list``: optional matched-line table from a previous identification.
 
 Output Files
 ~~~~~~~~~~~~
@@ -147,6 +146,7 @@ Citation
 If you use PyEMILI in your research, please cite:
 
 - `Tu, Fang et al. 2025 <https://iopscience.iop.org/article/10.3847/1538-4365/adae00>`_
+- `Tu, Fang et al. 2026 <https://iopscience.iop.org/article/10.3847/1538-4365/ae2259>`_
 
 Please also cite the original atomic data sources and relevant references when appropriate.
 
