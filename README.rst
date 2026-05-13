@@ -1,7 +1,7 @@
 PyEMILI
 =======
 
-**PyEMILI** (`Tu, Fang et al. 2025 <https://iopscience.iop.org/article/10.3847/1538-4365/adae00>`_) is a Python-based tool for automated spectral-line identification in astronomical spectra. It is designed primarily for emission-line objects, including planetary nebulae (PNe), H II regions, Herbig-Haro (HH) objects, and related sources, while also providing functionality for absorption-line identification and one-dimensional spectrum processing.
+**PyEMILI** (`Tu, Fang et al. 2025 <https://iopscience.iop.org/article/10.3847/1538-4365/adae00>`_; `Tu, Fang et al. 2026 <https://iopscience.iop.org/article/10.3847/1538-4365/ae2259>`_) is a Python-based tool for automated spectral-line identification in astronomical spectra. It is designed primarily for emission-line objects, including planetary nebulae (PNe), H II regions, Herbig-Haro (HH) objects, and related sources, while also providing functionality for absorption-line identification and one-dimensional spectrum processing.
 
 PyEMILI follows the general idea of EMILI, but implements the workflow in Python with updated atomic-data handling, automated ranking of candidate IDs, multiplet checks, and optional iterative refinement of ionization and velocity corrections. In comparison with manual line identifications in the literature, PyEMILI reaches approximately 90% agreement for tested emission-line spectra.
 
