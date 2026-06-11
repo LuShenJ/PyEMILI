@@ -14,9 +14,6 @@ Key Features
 
   - **Continuum fitting**: fit the continuum of a one-dimensional spectrum.
   - **Line detection**: detect spectral lines and provide an interactive interface for manual inspection, addition, and revision.
-
-- **Candidate ranking**: evaluate candidate IDs using wavelength agreement, predicted flux, ionization balance, and multiplet consistency.
-- **Iterative identification**: optionally refine the ionization correction factors and velocity corrections using robust first-pass identifications.
 - **Recombination-line fitting**: estimate electron temperature, electron density, and ionic abundance from recombination lines.
 
 .. note::
