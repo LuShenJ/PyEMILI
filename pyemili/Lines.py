@@ -205,6 +205,7 @@ class Line_list(object):
         else:
             self.col_cor = col_cor
             self.col_cor_m = True
+        self.col_cor_anchors = []
 
         self.match_list = match_list
 
@@ -234,6 +235,15 @@ class Line_list(object):
         self.HIexp = 0
         self.HeIexp = 0
         self.HeIIexp = 0
+        self.fluxscore_enabled = True
+        self.flux_compare = False
+        self.flux_ref_type = 'H beta'
+        self.flux_ref_label = 'H beta'
+        self.flux_ref_obs_flux = 1.0
+        self.flux_ref_pre_flux = 1.0
+        self.flux_ref_lab_wav = 4861.325
+        self.flux_ref_ele = 'H'
+        self.flux_ref_ion = 'I'
 
         print('Initializing database')
 
@@ -244,7 +254,7 @@ class Line_list(object):
         self.ele_binindex = np.load(os.path.join(self.rootdir,'pyemili','Line_dataset','elebin_index.npy')) 
 
         # The complete atomic transition database
-        self.linedb = np.load(os.path.join(self.rootdir,'pyemili','Line_dataset','Linedb.npz'))['arr_0']
+        self.linedb = np.load(os.path.join(self.rootdir,'pyemili','Line_dataset','Linedb_v1.2.npz'))['arr_0']
 
         # Compress the atomic transition database
         uplmt = self.wav.max()+self.waverr[self.wav.argmax(),1]*self.wav.max()*3*sigma/self.c
@@ -374,6 +384,10 @@ class Line_list(object):
                             f'Input Abundance Table: {abun_type}\n'
                     if self.waverr_type == 0:
                         out_sum += f'Input Wavelength uncertainty (1 sigma): {self.waverr_init} km/s\n'
+                    out_sum += self._flux_reference_out()
+                    out_sum += f'Collisionally excited line dilution factor (col_cor): {self.col_cor:.6E}\n'
+                    if self.col_cor_anchors:
+                        out_sum += f'col_cor anchors: {", ".join(self.col_cor_anchors)}\n'
 
                     f1.write(out_sum)
                     f1.write('\n')
@@ -403,6 +417,48 @@ class Line_list(object):
 
         if typeh == 1:
             self.H_beta_eff = self.abun[0,1]*self.HIcoe[21,self.HI_ix[0],self.HI_ix[1]]/6.626e-27/2.99e18*1e14
+
+
+    def _flux_reference_out(self):
+        """
+        Generate output-file text describing the flux normalization reference.
+        """
+
+        if not self.fluxscore_enabled:
+            return 'Flux comparison reference: None; flux comparison disabled because no H line was found in the match list.\n'
+
+        text = f'Flux comparison reference: {self.flux_ref_label}\n'
+        if self.flux_ref_type != 'H beta':
+            text += 'Fluxes for comparison are normalized to this H line instead of H beta.\n'
+            text += f'Reference observed flux: {self.flux_ref_obs_flux:.6E}\n'
+            text += f'Reference theoretical flux relative to H beta: {self.flux_ref_pre_flux:.6E}\n'
+        return text
+
+
+    def _update_flux_reference_model(self):
+        """
+        Recalculate the theoretical flux of the selected reference H line.
+        """
+
+        if not self.fluxscore_enabled or self.flux_ref_type == 'H beta':
+            return
+
+        ele = self.elesym.index(self.flux_ref_ele) + 1
+        ion = self.ionstat.index(self.flux_ref_ion) + 1
+        cond = (self.linedb[:,1] == ele) & (self.linedb[:,2] == ion)
+        if not np.any(cond):
+            self.fluxscore_enabled = False
+            self.flux_compare = False
+            return
+
+        subdb = self.linedb[cond]
+        ref = subdb[np.argmin(abs(subdb[:,0] - self.flux_ref_lab_wav))]
+        pre_flux = self.calcu_flux(ref.reshape(1,-1),self.RR,self.DR,1)[0]
+        if pre_flux > 0:
+            self.flux_ref_pre_flux = pre_flux
+        else:
+            self.fluxscore_enabled = False
+            self.flux_compare = False
 
 
 
@@ -640,48 +696,81 @@ class Line_list(object):
                  else 2 if x.ion[-1]==']' and x.ele[0]=='[' \
                  else 0,axis=1).rename('tt')
 
-        # Match the H beta if it exists
+        # Normalize observed and theoretical fluxes to a real H-line reference
+        # from the match list before using flux ratios to update ICFs.
         H_beta = lines[(ele==0)&(ion==0)&(lines.effcoe==22)] #
-        # Determine the H beta flux and normalized
         if len(H_beta.flux) != 0:
-            
+
             if len(H_beta.flux) != 1:
                 H_beta = H_beta[H_beta.flux==H_beta.flux.max()]
-                
-            if H_beta.flux.item() != 1:
-                print('H beta flux is not normalized. About to normalize the flux.')
-                lines.flux = lines.flux/H_beta.flux.item()
-                if H_beta.flux.item() > 0:
-                    self.obs_flux = self.obs_flux/H_beta.flux.item()
-                    self.obsflux_err = self.obsflux_err/H_beta.flux.item()
-        
-        elif min(self.wav) > 4861.325 or max(self.wav) < 4861.325:
-            print('WARNING: H beta is not in the wavelength range of input line list.')
-            print('WARNING: Consider input fluxes are already normalized to I(H_beta)=1.')
 
-        # If do not match H beta successfully, consider the nearest line as H beta
+            ref = H_beta.iloc[0]
+            ref_flux = ref.flux
+            ref_pre_flux = ref.pre_flux
+            self.flux_ref_type = 'H beta'
+            self.flux_ref_label = f'H I {ref.lab_wav:.3f} (H beta)'
+            self.flux_ref_obs_flux = ref_flux
+            self.flux_ref_pre_flux = ref_pre_flux if ref_pre_flux > 0 else 1.0
+            self.flux_ref_lab_wav = ref.lab_wav
+            self.flux_ref_ele = ref.ele
+            self.flux_ref_ion = ref.ion
+            self.fluxscore_enabled = True
+            self.flux_compare = True
+
         else:
-            H_betaflux = self.obs_flux[np.argmin(abs(self.wav-4861.325))]
-            H_beta = self.wav[np.argmin(abs(self.wav-4861.325))]
-            print('H beta is not included in matched list.')
-            print(f'Consider H beta as {H_beta}, observed flux:{H_betaflux}')
-            if H_betaflux != 1 and H_betaflux > 0:
-                lines.flux = lines.flux/H_betaflux
-                self.obs_flux = self.obs_flux/H_betaflux
+            H_lines = lines[(ele==0)&(lines.flux>0)&(lines.pre_flux>0)]
+            if len(H_lines.flux) != 0:
+                ref = H_lines.iloc[np.argmax(H_lines.flux.values)]
+                ref_flux = ref.flux
+                ref_pre_flux = ref.pre_flux
+                self.flux_ref_type = 'H line'
+                self.flux_ref_label = f'{ref.ele} {ref.ion} {ref.lab_wav:.3f}'
+                self.flux_ref_obs_flux = ref_flux
+                self.flux_ref_pre_flux = ref_pre_flux
+                self.flux_ref_lab_wav = ref.lab_wav
+                self.flux_ref_ele = ref.ele
+                self.flux_ref_ion = ref.ion
+                self.fluxscore_enabled = True
+                self.flux_compare = True
+                print(f'H beta is not in the match list. Normalize flux comparison to {self.flux_ref_label}.')
+            else:
+                self.flux_ref_type = 'None'
+                self.flux_ref_label = 'None'
+                self.flux_ref_obs_flux = 1.0
+                self.flux_ref_pre_flux = 1.0
+                self.fluxscore_enabled = False
+                self.flux_compare = False
+                print('WARNING: No H line found in the match list. Disable flux comparison.')
+
+        if self.fluxscore_enabled and self.flux_compare:
+            if self.flux_ref_obs_flux != 1:
+                lines.flux = lines.flux/self.flux_ref_obs_flux
+                self.obs_flux = self.obs_flux/self.flux_ref_obs_flux
+                self.obsflux_err = self.obsflux_err/self.flux_ref_obs_flux
+            if self.flux_ref_pre_flux != 1:
+                lines.pre_flux = lines.pre_flux/self.flux_ref_pre_flux
 
 
         tbin = pd.concat([ele,ion,tt],axis=1).apply( \
             lambda x: self.ele_binindex[x.ele,x.ion+1] if x.tt!=2 \
                  else self.ele_binindex[x.ele,x.ion],axis=1)
 
-        # Modify the dillution factor of collisional excitation term
-        if len(lines[tt==2]) >= 5 and self.col_cor_m:
-            self.col_cor = self.col_cor/np.median(lines[tt==2].pre_flux/lines[tt==2].flux)
-            if self.col_cor > 1:
-                self.col_cor = 1
+        # Modify the dilution factor of collisional excitation term using the
+        # strongest forbidden-line anchors in the match list.
+        if self.fluxscore_enabled and self.col_cor_m:
+            forbidden = lines[(tt==2)&(lines.flux>0)&(lines.pre_flux>0)].copy()
+            if len(forbidden) != 0:
+                forbidden = forbidden.sort_values('flux',ascending=False).head(3)
+                self.col_cor = self.col_cor*np.mean(forbidden.flux/forbidden.pre_flux)
+                self.col_cor_anchors = [
+                    f'{row.ele} {row.ion} {row.lab_wav:.3f}'
+                    for row in forbidden.itertuples(index=False)
+                ]
+                if self.col_cor > 1:
+                    self.col_cor = 1
                     
         # If user did not specify the `icf` parameter
-        if not self.icfuc:
+        if self.fluxscore_enabled and not self.icfuc:
 
             # Set the minimum and maximum values of each bin
             min_val = [1.0E-2] + [1.0E-3]*3 + [1.0E-4]
@@ -820,7 +909,8 @@ class Line_list(object):
                 if ix3 < min_val[2]:
                     ix3 = min_val[2]
 
-            self.icf = np.array([ix1,ix2,ix3,ix4,ix5])
+            self.icf = np.clip(np.array([ix1,ix2,ix3,ix4,ix5]), min_val, max_val)
+            self.icf = self.icf/sum(self.icf)
 
             
         rvcor = (lines.obs_wav - lines.lab_wav)*self.c/lines.lab_wav
@@ -877,6 +967,7 @@ class Line_list(object):
         self._H_beta_flux(1)
         if min(self.obs_flux) < 0:
             self._H_beta_flux(0)
+        self._update_flux_reference_model()
             
 
     def linesubframe(self,wavl,wavelerr,sigma):
@@ -1092,16 +1183,20 @@ class Line_list(object):
         """
         # Calculate fluxes of candidate lines
         self.flux = self.calcu_flux(linesubframe,self.RR,self.DR,obs_flux)
+        if self.fluxscore_enabled and self.flux_ref_pre_flux > 0:
+            self.flux = self.flux/self.flux_ref_pre_flux
 
         fluxscore = np.zeros(linesubframe.shape[0])
-
-        # Find the maximum flux within the candidate lines
-        maxf = self.flux.max()
+        if not self.fluxscore_enabled:
+            return fluxscore
 
         # For those lines with extremely low predicted fluxes, set to a certain value
         self.flux[self.flux<=1e-20] = 1e-24
 
-        # Score each candidate line
+        # Rank candidates by their relative predicted strengths within the
+        # local candidate set. Observed/model ratios are used upstream only
+        # to calibrate the model scale, not to score individual candidates.
+        maxf = self.flux.max()
         fluxscore = np.int64((np.log(maxf/self.flux)/np.log(10)))
 
         # For those lines with fluxes lower than 1e-5*max, all are set to 5 and ready \
@@ -1220,6 +1315,8 @@ class Line_list(object):
             # Generate the peripheral line subframe
             exlineframe = self.linesubframe(wavl,wavlerr,[self.sigma,2*self.sigma])
             exflux = self.calcu_flux(exlineframe,self.RR,self.DR,obs_flux)
+            if self.fluxscore_enabled and self.flux_ref_pre_flux > 0:
+                exflux = exflux/self.flux_ref_pre_flux
             exlineframe = exlineframe[np.argmax(exflux)]
             exflux = exflux[np.argmax(exflux)]
 
@@ -1341,6 +1438,9 @@ class Line_list(object):
                 ele,ion = ion_nota[0].split()
                 pre_flux = self.flux[score==mmin]
                 ionna = np.unique(np.stack((minframe[:,1],minframe[:,2]),axis=-1),axis=0)
+                ir_eff_recomb = (minframe[:,0] > 20000) & (minframe[:,14] != 0) & \
+                    (((minframe[:,1] == 1) & (minframe[:,2] == 1)) | \
+                     ((minframe[:,1] == 2) & ((minframe[:,2] == 1) | (minframe[:,2] == 2))))
                 # Find the second minimum score
                 if len(np.unique(score)) > 1:
                     submin = np.unique(score)[1]
@@ -1363,9 +1463,31 @@ class Line_list(object):
                         minframe = minframe[minframe[:,3]==spec]
 
                     lab_wav = sum(minframe[:,5]*minframe[:,0])/sum(minframe[:,5])
+                    effcoe = minframe[:,14][np.argmax(pre_flux)] \
+                        if sum(minframe[:,14] != 0) else 0
                     pre_flux = sum(minframe[:,5]*pre_flux)/sum(minframe[:,5])     
-                    output.append([line,lab_wav,ele,ion,obs_flux,pre_flux,sum(minframe[:,14] != 0)])
+                    output.append([line,lab_wav,ele,ion,obs_flux,pre_flux,effcoe])
 
+                # IR H I, He I and He II recombination lines with effective coefficients
+                # are useful anchors for ICF and velocity estimates even when blended with
+                # nearby low-confidence candidates in the first pass.
+                elif sum(ir_eff_recomb) != 0:
+                    recomb_frame = minframe[ir_eff_recomb]
+                    recomb_flux = pre_flux[ir_eff_recomb]
+                    recomb_ions = np.unique(
+                        np.stack((recomb_frame[:,1],recomb_frame[:,2]),axis=-1),
+                        axis=0
+                    )
+                    if len(recomb_ions) == 1:
+                        recomb_nota = self.ion_notation(recomb_frame)
+                        recomb_ele,recomb_ion = recomb_nota[0].split()
+                        lab_wav = sum(recomb_frame[:,5]*recomb_frame[:,0])/sum(recomb_frame[:,5])
+                        pre_flux_out = sum(recomb_frame[:,5]*recomb_flux)/sum(recomb_frame[:,5])
+                        effcoe = recomb_frame[:,14][np.argmax(recomb_flux)]
+                        output.append([line,lab_wav,recomb_ele,recomb_ion,obs_flux,pre_flux_out,effcoe])
+                    else:
+                        pbar.update(1)
+                        continue
                 
                 # If number of candidate lines with minimum score is not 1, but \
                 # they are all in the same energy bin
