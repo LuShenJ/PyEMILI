@@ -18,7 +18,7 @@ Key Features
 
 .. note::
 
-   PyEMILI uses the `Atomic Line List v3.00b4 <https://www.pa.uky.edu/~peter/newpage/index.html>`_ developed by Peter A. M. van Hoof. The current atomic transition database in the GitHub version covers wavelengths from **1000 Angstrom to 30 micron**. Molecular transitions are not included in the current version.
+   PyEMILI uses the `Atomic Line List v3.00b4 <https://www.pa.uky.edu/~peter/newpage/index.html>`_ developed by Peter A. M. van Hoof. The current atomic transition database in the GitHub version covers wavelengths from **1000 Angstrom to 30 micron**. This expanded database has not yet been included in a formal release; the published v1.1 database covers wavelengths only up to **2 micron**. Molecular transitions are not included in the current version.
 
 Requirements
 ------------
@@ -43,7 +43,7 @@ Installation
 
 PyEMILI is under active development. For the most up-to-date version, we recommend installing from the GitHub repository.
 
-The latest GitHub version includes the expanded atomic transition database out to **30 micron**. This update can be obtained with ``git clone`` and local installation, but it has not yet been published as a formal release.
+The latest GitHub version includes the expanded atomic transition database out to **30 micron**. This update can be obtained with ``git clone`` and local installation, but it has not yet been published as a formal release. The latest published release, v1.1, still uses the database that extends only to **2 micron**.
 
 Install from GitHub
 ~~~~~~~~~~~~~~~~~~~
