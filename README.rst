@@ -23,7 +23,7 @@ Key Features
 Requirements
 ------------
 
-PyEMILI requires Python 3 and the following Python packages:
+PyEMILI requires Python 3. The basic spectral-line identification and one-dimensional spectrum-processing functions require:
 
 - ``numpy``
 - ``scipy``
@@ -32,6 +32,11 @@ PyEMILI requires Python 3 and the following Python packages:
 - ``pandas``
 - ``numba``
 - ``tqdm``
+
+The recombination-line fitting module additionally requires:
+
+- ``emcee``
+- ``corner``
 
 Package Compatibility
 ~~~~~~~~~~~~~~~~~~~~~
